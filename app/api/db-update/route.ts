@@ -10,7 +10,7 @@ export async function GET(request: NextRequest) {
     const secretKey = searchParams.get('key');
     
     // Güçlü güvenlik anahtarı
-    const GUVENLIK_ANAHTARI = "MemonexERP_2026_Beta_Token!X";
+    const GUVENLIK_ANAHTARI = "MNXERP_2026_Beta_X4897";
 
     if (secretKey !== GUVENLIK_ANAHTARI) {
         return NextResponse.json({ error: 'Yetkisiz erişim denemesi!' }, { status: 401 });

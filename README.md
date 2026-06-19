@@ -1,5 +1,5 @@
 # MNX ERP Kurulum ve Kullanım Kılavuzu
-
+MNXERP_2026_Beta_X4897
 ## 📋 Sistem Gereksinimleri
 
 Kuruluma başlamadan önce aşağıdaki yazılımların bilgisayarda kurulu olması gerekir:
