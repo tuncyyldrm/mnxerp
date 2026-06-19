@@ -1,0 +1,289 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<ActiveReportsLayout 
+	GUIDLIB="{72E922CD-C530-4780-814E-222253DF84E9}" GUIDREP="{1C8733D5-95AB-47CB-89E0-1F8E96B7F2A9}" 
+	LICENSE="10000000"
+	PrintWidth="11340"
+	DocumentName="onelee"
+	TOCWidth="1800"
+	ScriptLang="VBScript"
+>
+<Watermark
+		>
+</Watermark>
+<PageSettings></PageSettings>
+<StyleSheet>
+	<Style Name="Normal"
+	Value="font-family: &apos;Arial&apos;; font-style: normal; font-variant: inherit; font-weight: normal; font-size: 10pt; font-size-adjust: inherit; font-stretch: inherit; color: rgb(0,0,0); background-color: rgb(255,255,255); background-image: inherit; background-repeat: inherit; background-attachment: inherit; background-x-position: inherit; background-y-position: inherit; opacity: inherit; word-spacing: inherit; letter-spacing: inherit; text-decoration: none; vertical-align: inherit; text-transform: inherit; text-align: inherit; text-indent: inherit; unicode-bidi: inherit; line-height: inherit; white-space: inherit; ddo-can-grow: inherit; ddo-can-shrink: inherit; ddo-char-set: 0; "
+	/>
+	<Style Name="Heading1"
+	Value="font-family: &apos;inherit&apos;; font-style: inherit; font-variant: inherit; font-weight: bold; font-size: 16pt; font-size-adjust: inherit; font-stretch: inherit; "
+	/>
+	<Style Name="Heading2"
+	Value="font-family: &apos;Times New Roman&apos;; font-style: italic; font-variant: inherit; font-weight: bold; font-size: 14pt; font-size-adjust: inherit; font-stretch: inherit; "
+	/>
+	<Style Name="Heading3"
+	Value="font-family: &apos;inherit&apos;; font-style: inherit; font-variant: inherit; font-weight: bold; font-size: 13pt; font-size-adjust: inherit; font-stretch: inherit; "
+	/>
+	<Style Name="Heading4"
+	/>
+</StyleSheet>
+<Sections>
+	<Section Type="PageHeader" Name="SAYFABASI"
+		Height="1080"
+	>
+		<Control 
+		Type="AR.Shape"
+		Name="Shape1"
+		Left="106"
+		Top="567"
+		Width="8611"
+		Height="319"
+		BackStyle="1"
+		BackColor="14737632"
+		LineStyle="0"
+		>
+		</Control>
+		<Control 
+		Type="AR.Field"
+		Name="F_FIRMA"
+		Left="213"
+		Top="567"
+		Width="7830"
+		Height="319"
+		Text="FİRMA ADI"
+		ClassName="Normal"
+		Style="font-family: &apos;verdana&apos;; ddo-char-set: 1; font-size: 8pt; vertical-align: middle; "
+		>
+		</Control>
+		<Control 
+		Type="AR.Shape"
+		Name="Shape2"
+		Left="8043"
+		Top="567"
+		Width="3296"
+		Height="319"
+		BackStyle="1"
+		BackColor="8421504"
+		LineStyle="0"
+		>
+		</Control>
+		<Control 
+		Type="AR.Label"
+		Name="Label7"
+		Left="8043"
+		Top="567"
+		Width="3225"
+		Height="283"
+		Caption="STOK RAPORU"
+		ClassName="Normal"
+		Style="font-family: &apos;Verdana&apos;; font-weight: bold; color: rgb(255,255,255); text-align: center; vertical-align: middle; "
+		>
+		</Control>
+		<Control 
+		Type="AR.Field"
+		Name="Field1"
+		DataField="=DATE"
+		Left="9638"
+		Top="106"
+		Width="1665"
+		Height="213"
+		ClassName="Normal"
+		Style="font-family: &apos;Verdana&apos;; font-weight: bold; font-size: 7pt; text-align: right; "
+		>
+		</Control>
+	</Section>
+	<Section Type="GroupHeader" Name="GRUPBASI"
+		Height="480"
+	>
+		<Control 
+		Type="AR.Label"
+		Name="Label1"
+		Left="106"
+		Top="142"
+		Width="1347"
+		Height="248"
+		Caption="STOK KODU"
+		ClassName="Normal"
+		Style="font-family: &apos;Verdana&apos;; font-size: 8.5pt; "
+		>
+		</Control>
+		<Control 
+		Type="AR.Label"
+		Name="Label2"
+		Left="1488"
+		Top="142"
+		Width="4784"
+		Height="248"
+		Caption="STOK ADI"
+		ClassName="Normal"
+		Style="font-family: &apos;Verdana&apos;; font-size: 8.5pt; "
+		>
+		</Control>
+		<Control 
+		Type="AR.Label"
+		Name="Label3"
+		Left="6272"
+		Top="142"
+		Width="1346"
+		Height="248"
+		Caption="ALIŞ FİYATI"
+		ClassName="Normal"
+		Style="font-family: &apos;Verdana&apos;; font-size: 8.5pt; text-align: right; "
+		>
+		</Control>
+		<Control 
+		Type="AR.Label"
+		Name="Label4"
+		Left="7618"
+		Top="142"
+		Width="1099"
+		Height="248"
+		Caption="STOK"
+		ClassName="Normal"
+		Style="font-family: &apos;Verdana&apos;; font-size: 8.5pt; text-align: right; "
+		>
+		</Control>
+		<Control 
+		Type="AR.Label"
+		Name="Label5"
+		Left="8717"
+		Top="142"
+		Width="1240"
+		Height="248"
+		Caption="ALIŞ TUTARI"
+		ClassName="Normal"
+		Style="font-family: &apos;Verdana&apos;; font-size: 8.5pt; text-align: right; "
+		>
+		</Control>
+		<Control 
+		Type="AR.Label"
+		Name="Label6"
+		Left="9957"
+		Top="142"
+		Width="1382"
+		Height="248"
+		Caption="BAKİYE"
+		ClassName="Normal"
+		Style="font-family: &apos;Verdana&apos;; font-size: 8.5pt; text-align: right; "
+		>
+		</Control>
+		<Control 
+		Type="AR.Line"
+		Name="Line2"
+		X1="106"
+		Y1="425"
+		X2="11339"
+		Y2="425"
+		LineStyle="2"
+		LineColor="8421504"
+		>
+		</Control>
+	</Section>
+	<Section Type="Detail" Name="SATIRLAR"
+		Height="345"
+	>
+		<Control 
+		Type="AR.DataControl"
+		Name="DataControl1"
+		Left="3508"
+		Top="0"
+		Width="1169"
+		Height="319"
+		Visible="0"
+		LockType="1"
+		>
+		</Control>
+		<Control 
+		Type="AR.Field"
+		Name="U_KODU"
+		Left="106"
+		Top="0"
+		Width="1347"
+		Height="248"
+		Text="STOK KODU"
+		ClassName="Normal"
+		Style="font-family: &apos;verdana&apos;; ddo-char-set: 1; font-size: 8pt; "
+		>
+		</Control>
+		<Control 
+		Type="AR.Field"
+		Name="U_NAME"
+		Left="1488"
+		Top="0"
+		Width="4819"
+		Height="248"
+		Text="STOK ADI"
+		ClassName="Normal"
+		Style="font-family: &apos;verdana&apos;; ddo-char-set: 1; font-size: 8pt; white-space: nowrap; "
+		>
+		</Control>
+		<Control 
+		Type="AR.Field"
+		Name="U_SAFIYAT"
+		Left="6307"
+		Top="0"
+		Width="1347"
+		Height="248"
+		Text="STOK ALIŞ FİYATI"
+		ClassName="Normal"
+		Style="font-family: &apos;verdana&apos;; ddo-char-set: 1; font-size: 8pt; text-align: right; "
+		>
+		</Control>
+		<Control 
+		Type="AR.Field"
+		Name="U_STK_FULL"
+		Left="7654"
+		Top="0"
+		Width="1098"
+		Height="248"
+		Text="STOK MİKTARI"
+		ClassName="Normal"
+		Style="font-family: &apos;verdana&apos;; ddo-char-set: 1; font-size: 8pt; text-align: right; "
+		>
+		</Control>
+		<Control 
+		Type="AR.Field"
+		Name="U_STAFIYAT"
+		Left="8752"
+		Top="0"
+		Width="1240"
+		Height="248"
+		Text="STOK ALIŞ TUTARI"
+		ClassName="Normal"
+		Style="font-family: &apos;verdana&apos;; ddo-char-set: 1; font-size: 8pt; text-align: right; "
+		>
+		</Control>
+		<Control 
+		Type="AR.Field"
+		Name="U_STAFIYAT_T"
+		Left="9992"
+		Top="0"
+		Width="1347"
+		Height="248"
+		Text="STOK ALIŞ TUTARI TOPLAMI"
+		ClassName="Normal"
+		Style="font-family: &apos;verdana&apos;; ddo-char-set: 1; font-size: 8pt; text-align: right; "
+		>
+		</Control>
+		<Control 
+		Type="AR.Line"
+		Name="Line1"
+		X1="106"
+		Y1="283"
+		X2="11339"
+		Y2="283"
+		LineStyle="2"
+		LineColor="8421504"
+		>
+		</Control>
+	</Section>
+	<Section Type="GroupFooter" Name="GRUPSON"
+		Height="0"
+	>
+	</Section>
+	<Section Type="PageFooter" Name="SAYFASON"
+		Height="330"
+	>
+	</Section>
+</Sections>
+</ActiveReportsLayout>

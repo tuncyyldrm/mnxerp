@@ -1,0 +1,108 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<ActiveReportsLayout 
+	GUIDLIB="{92A30EA7-A3D5-4C64-8B18-B144D546AD01}" GUIDREP="{03F6C0FF-F53C-4571-BBE4-33F85E85547C}" 
+	LICENSE="10000100853C04F9F2F61A10A3C908002B2F49FB4A00320038004300340043003800320030002D0034003000310041002D0031003000310042002D0041003300
+		430039002D003000380030003000320042003200460034003900460042000000"
+	PrintWidth="2970"
+	DocumentName="onelee"
+	TOCWidth="1800"
+	ScriptLang="VBScript"
+>
+<Watermark
+		>
+</Watermark>
+<PageSettings	LeftMargin="200"
+	RightMargin="200"
+	TopMargin="200"
+	BottomMargin="200"
+	PaperSize="9"
+	PaperWidth="11904"
+	PaperHeight="16820"
+>
+</PageSettings>
+<StyleSheet>
+	<Style Name="Normal"
+	Value="font-family: &apos;Arial&apos;; font-style: normal; font-variant: inherit; font-weight: normal; font-size: 10pt; font-size-adjust: inherit; font-stretch: inherit; color: rgb(0,0,0); background-color: rgb(255,255,255); background-image: inherit; background-repeat: inherit; background-attachment: inherit; background-x-position: inherit; background-y-position: inherit; opacity: inherit; word-spacing: inherit; letter-spacing: inherit; text-decoration: none; vertical-align: inherit; text-transform: inherit; text-align: inherit; text-indent: inherit; unicode-bidi: inherit; line-height: inherit; white-space: inherit; ddo-can-grow: inherit; ddo-can-shrink: inherit; ddo-char-set: 0; "
+	/>
+	<Style Name="Heading1"
+	Value="font-family: &apos;inherit&apos;; font-style: inherit; font-variant: inherit; font-weight: bold; font-size: 16pt; font-size-adjust: inherit; font-stretch: inherit; "
+	/>
+	<Style Name="Heading2"
+	Value="font-family: &apos;Times New Roman&apos;; font-style: italic; font-variant: inherit; font-weight: bold; font-size: 14pt; font-size-adjust: inherit; font-stretch: inherit; "
+	/>
+	<Style Name="Heading3"
+	Value="font-family: &apos;inherit&apos;; font-style: inherit; font-variant: inherit; font-weight: bold; font-size: 13pt; font-size-adjust: inherit; font-stretch: inherit; "
+	/>
+	<Style Name="Heading4"
+	/>
+</StyleSheet>
+<Sections>
+	<Section Type="PageHeader" Name="SAYFABASI"
+		Height="0"
+	>
+	</Section>
+	<Section Type="GroupHeader" Name="GRUPBASI"
+		Height="0"
+	>
+	</Section>
+	<Section Type="Detail" Name="SATIRLAR"
+		Height="2040"
+	>
+		<Control 
+		Type="AR.Barcode"
+		Name="U_BARKOD_B"
+		Left="35"
+		Top="921"
+		Width="3083"
+		Height="425"
+		>
+<![CDATA[01000E004200410052004B004F004400000001000B00000000000000020000000000000002000000760065007200640061006E00610000000000000000000000
+		00000000000000000000000000000000000000000000000000000000000000000000000000000000803801000000000000000000000000000000000000000000
+		9001010000000000FFFFFF0000000000]]>
+		</Control>
+		<Control 
+		Type="AR.Field"
+		Name="U_NAME"
+		Left="35"
+		Top="0"
+		Width="2906"
+		Height="780"
+		Text="STOK ADI"
+		ClassName="Normal"
+		Style="font-family: &apos;Verdana&apos;; ddo-char-set: 1; font-size: 9pt; background-color: rgb(255,255,255); color: rgb(0,0,0); text-align: left; vertical-align: bottom; font-weight: bold; font-style: italic; "
+		>
+		</Control>
+		<Control 
+		Type="AR.Field"
+		Name="U_BARKOD"
+		Left="35"
+		Top="1417"
+		Width="2871"
+		Height="390"
+		Text="BARKOD"
+		ClassName="Normal"
+		Style="font-family: &apos;verdana&apos;; ddo-char-set: 1; font-size: 14pt; font-weight: bold; text-align: left; "
+		>
+		</Control>
+		<Control 
+		Type="AR.DataControl"
+		Name="DataControl1"
+		Left="1594"
+		Top="921"
+		Width="532"
+		Height="425"
+		Visible="0"
+		LockType="1"
+		>
+		</Control>
+	</Section>
+	<Section Type="GroupFooter" Name="GRUPSON"
+		Height="0"
+	>
+	</Section>
+	<Section Type="PageFooter" Name="SAYFASON"
+		Height="0"
+	>
+	</Section>
+</Sections>
+</ActiveReportsLayout>

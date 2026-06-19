@@ -1,0 +1,91 @@
+1. Temel Kurulum ve İlk Çalıştırma
+Projeyi bir kez servis olarak kurmak için bu sırayı izleyin:
+powershell
+
+npm install
+
+# 1. Projeyi üretim için derleyin (Değişikliklerden sonra mutlaka yapılmalı)
+npm run build
+
+# 2. Projeyi PM2 ile servis olarak başlatın
+pm2 start ecosystem.config.js
+
+# 3. Bilgisayar açılışına kaydedin (Bir kez yapılması yeterli)
+pm2 save
+Kodu dikkatli kullanın.
+2. Günlük Kullanım Komutları
+Sistemi yönetmek için terminalde şu kısa komutları kullanabilirsiniz:
+Komut	Açıklama
+pm2 status	Sistemin çalışıp çalışmadığını (online/offline) gösterir.
+pm2 restart katalog-sistemi	Uygulamayı yeniden başlatır (Kod güncellemesinden sonra kullanılır).
+pm2 stop katalog-sistemi	Uygulamayı durdurur (Servis çalışmaya devam eder ama site kapanır).
+pm2 start katalog-sistemi	Durdurulan uygulamayı tekrar açar.
+pm2 logs katalog-sistemi	Arka plandaki hataları ve SQL bağlantı kayıtlarını gösterir.
+pm2 monit	İşlemci ve RAM kullanımını canlı panelden izletir.
+pm2 delete all	Tüm projeleri PM2 listesinden tamamen siler.
+3. Kod Güncelleme Akışı
+Projenizde bir değişiklik yaptığınızda izlemeniz gereken standart yol:
+Kodunuzu kaydedin.
+npm run build komutunu çalıştırın.
+pm2 restart katalog-sistemi komutunu çalıştırın.
+SQL Server bağlantısı için hazırladığınız connection string yapısında bir hata alırsanız logs komutu ile hatayı kontrol etmeyi unutmayın.
+SQL Server bağlantısı için kullanıcı adı ve şifre bilgilerini gireceğiniz .env dosyası hazır mı?
+
+# PM2'yi Windows servislerine eklemek için (Admin yetkisiyle)
+npm install pm2-windows-startup -g
+pm2-startup install
+
+
+sql kritik komutlar kurulum için;
+
+---------------------------------------
+
+USE ONEDB;
+GO
+-- SQL Server'ın önbelleğe aldığı kötü sorgu planlarını temizle
+DBCC FREEPROCCACHE; 
+GO
+-- Tabloyu tazeleyin
+UPDATE STATISTICS [stok] WITH FULLSCAN;
+GO
+
+---------------------------------------
+
+USE ONEDB;
+GO
+
+-- 1. ESKİ/FAZLA İNDEKSLERİ TEMİZLE (Çakışmaları önlemek için)
+-- IX_Stok_Filtre zaten IX_Stok_Arama'nın içinde var, siliyoruz.
+IF EXISTS (SELECT * FROM sys.indexes WHERE name = 'IX_Stok_Filtre' AND object_id = OBJECT_ID('stok'))
+    DROP INDEX IX_Stok_Filtre ON [stok];
+GO
+
+-- 2. ANA FİLTRE VE LİSTELEME İNDEKSİ (Kategori ve Grup Seçimleri İçin)
+-- INCLUDE kısmına 'Raf' eklendi, böylece liste ekranında SQL ana tabloya hiç gitmez.
+IF EXISTS (SELECT * FROM sys.indexes WHERE name = 'IX_Stok_Arama' AND object_id = OBJECT_ID('stok'))
+    DROP INDEX IX_Stok_Arama ON [stok];
+
+CREATE NONCLUSTERED INDEX IX_Stok_Filtreleme_Master
+ON [dbo].[stok] (grubu, kateGOri, tipi) 
+INCLUDE (urunkodu, urun, fiyatı, STK_FULL, Raf); 
+GO
+
+-- 3. ÜRÜN İSMİ ARAMA İNDEKSİ (Arama Kutusu İçin)
+-- Kullanıcı parça ismi yazdığında (LIKE 'fren%') sistemi uçuran budur.
+IF NOT EXISTS (SELECT * FROM sys.indexes WHERE name = 'IX_Stok_Urun_Arama' AND object_id = OBJECT_ID('stok'))
+CREATE NONCLUSTERED INDEX IX_Stok_Urun_Arama 
+ON [dbo].[stok] (urun) 
+INCLUDE (urunkodu, fiyatı, STK_FULL, Raf, grubu);
+GO
+
+-- 4. ÜRÜN KODU İNDEKSİ (Tam Eşleşme İçin)
+-- Kod aramaları benzersiz olduğu için en hızlı sonucu bu verir.
+IF NOT EXISTS (SELECT * FROM sys.indexes WHERE name = 'IX_Stok_Kod' AND object_id = OBJECT_ID('stok'))
+CREATE NONCLUSTERED INDEX IX_Stok_Kod ON [stok] (urunkodu);
+GO
+
+-- 5. İSTATİSTİKLERİ GÜNCELLE (SQL'in yeni indeksleri tanıması için)
+UPDATE STATISTICS [stok];
+GO
+
+----------------------------------------

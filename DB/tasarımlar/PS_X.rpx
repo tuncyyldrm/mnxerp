@@ -1,0 +1,452 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<ActiveReportsLayout 
+	GUIDLIB="{5FF19AAA-D3DB-4096-AC78-7222DA2906C9}" GUIDREP="{DA90A12C-9185-496D-985A-38D77157564E}" 
+	LICENSE="10000000"
+	PrintWidth="11445"
+	DocumentName="ONELEE REPORT"
+	TOCWidth="1800"
+	ScriptLang="VBScript"
+>
+<Watermark
+		>
+</Watermark>
+<PageSettings></PageSettings>
+<StyleSheet>
+	<Style Name="Normal"
+	Value="font-family: &apos;Arial&apos;; font-style: normal; font-variant: inherit; font-weight: normal; font-size: 10pt; font-size-adjust: inherit; font-stretch: inherit; color: rgb(0,0,0); background-color: rgb(255,255,255); background-image: inherit; background-repeat: inherit; background-attachment: inherit; background-x-position: inherit; background-y-position: inherit; opacity: inherit; word-spacing: inherit; letter-spacing: inherit; text-decoration: none; vertical-align: inherit; text-transform: inherit; text-align: inherit; text-indent: inherit; unicode-bidi: inherit; line-height: inherit; white-space: inherit; ddo-can-grow: inherit; ddo-can-shrink: inherit; ddo-char-set: 0; "
+	/>
+	<Style Name="Heading1"
+	Value="font-family: &apos;inherit&apos;; font-style: inherit; font-variant: inherit; font-weight: bold; font-size: 16pt; font-size-adjust: inherit; font-stretch: inherit; "
+	/>
+	<Style Name="Heading2"
+	Value="font-family: &apos;Times New Roman&apos;; font-style: italic; font-variant: inherit; font-weight: bold; font-size: 14pt; font-size-adjust: inherit; font-stretch: inherit; "
+	/>
+	<Style Name="Heading3"
+	Value="font-family: &apos;inherit&apos;; font-style: inherit; font-variant: inherit; font-weight: bold; font-size: 13pt; font-size-adjust: inherit; font-stretch: inherit; "
+	/>
+	<Style Name="Heading4"
+	/>
+</StyleSheet>
+<Sections>
+	<Section Type="PageHeader" Name="SAYFABASI"
+		Height="0"
+		CanGrow="0"
+	>
+	</Section>
+	<Section Type="GroupHeader" Name="GRUPBASI"
+		Height="1875"
+	>
+		<Control 
+		Type="AR.Field"
+		Name="Field1"
+		Left="106"
+		Top="1594"
+		Width="1488"
+		Height="249"
+		Text="Stok Kodu"
+		ClassName="Normal"
+		Style="font-family: &apos;verdana&apos;; ddo-char-set: 1; font-size: 8pt; "
+		>
+		</Control>
+		<Control 
+		Type="AR.Field"
+		Name="Field2"
+		Left="1630"
+		Top="1594"
+		Width="3437"
+		Height="249"
+		Text="Stok Adı"
+		ClassName="Normal"
+		Style="font-family: &apos;verdana&apos;; ddo-char-set: 1; font-size: 8pt; "
+		>
+		</Control>
+		<Control 
+		Type="AR.Field"
+		Name="Field4"
+		Left="5740"
+		Top="1594"
+		Width="992"
+		Height="249"
+		Text="Birim Fiyatı"
+		ClassName="Normal"
+		Style="font-family: &apos;verdana&apos;; ddo-char-set: 1; font-size: 8pt; text-align: right; "
+		>
+		</Control>
+		<Control 
+		Type="AR.Field"
+		Name="Field5"
+		Left="7972"
+		Top="1594"
+		Width="993"
+		Height="249"
+		Text="Miktar"
+		ClassName="Normal"
+		Style="font-family: &apos;verdana&apos;; ddo-char-set: 1; font-size: 8pt; text-align: center; "
+		>
+		</Control>
+		<Control 
+		Type="AR.Field"
+		Name="Field6"
+		Left="9213"
+		Top="1594"
+		Width="1240"
+		Height="249"
+		Text="Tutar"
+		ClassName="Normal"
+		Style="font-family: &apos;verdana&apos;; ddo-char-set: 1; font-size: 8pt; text-align: right; "
+		>
+		</Control>
+		<Control 
+		Type="AR.Line"
+		Name="Line2"
+		X1="142"
+		Y1="1843"
+		X2="10453"
+		Y2="1843"
+		LineStyle="2"
+		LineColor="12632256"
+		>
+		</Control>
+		<Control 
+		Type="AR.Field"
+		Name="Field13"
+		Left="8150"
+		Top="638"
+		Width="1063"
+		Height="212"
+		Text="Belge Tarihi"
+		ClassName="Normal"
+		Style="font-size: 8pt; "
+		>
+		</Control>
+		<Control 
+		Type="AR.Field"
+		Name="Field14"
+		Left="8150"
+		Top="886"
+		Width="885"
+		Height="212"
+		Text="Belge No"
+		ClassName="Normal"
+		Style="font-size: 8pt; "
+		>
+		</Control>
+		<Control 
+		Type="AR.Field"
+		Name="B_BTARIH"
+		Left="9283"
+		Top="638"
+		Width="1205"
+		Height="212"
+		Text="Belge tarihi"
+		ClassName="Normal"
+		Style="font-family: &apos;verdana&apos;; ddo-char-set: 1; font-size: 8pt; "
+		>
+		</Control>
+		<Control 
+		Type="AR.Field"
+		Name="B_BNO"
+		Left="9283"
+		Top="886"
+		Width="1205"
+		Height="212"
+		Text="Belge numarası"
+		ClassName="Normal"
+		Style="font-family: &apos;verdana&apos;; ddo-char-set: 1; font-size: 8pt; "
+		>
+		</Control>
+		<Control 
+		Type="AR.Field"
+		Name="Field16"
+		Left="9142"
+		Top="638"
+		Width="106"
+		Height="212"
+		Text=":"
+		ClassName="Normal"
+		>
+		</Control>
+		<Control 
+		Type="AR.Field"
+		Name="Field17"
+		Left="9142"
+		Top="886"
+		Width="106"
+		Height="212"
+		Text=":"
+		ClassName="Normal"
+		>
+		</Control>
+		<Control 
+		Type="AR.Field"
+		Name="Field19"
+		Left="7264"
+		Top="1594"
+		Width="425"
+		Height="249"
+		Text="KDV"
+		ClassName="Normal"
+		Style="font-family: &apos;verdana&apos;; ddo-char-set: 1; font-size: 8pt; text-align: right; "
+		>
+		</Control>
+		<Control 
+		Type="AR.Field"
+		Name="B_TIP"
+		Left="8150"
+		Top="248"
+		Width="2338"
+		Height="319"
+		Text="Belge Tipi"
+		BackStyle="1"
+		ClassName="Normal"
+		Style="font-family: &apos;verdana&apos;; ddo-char-set: 1; font-size: 8pt; vertical-align: middle; background-color: rgb(128,128,128); color: rgb(255,255,255); text-align: center; "
+		>
+		</Control>
+		<Control 
+		Type="AR.Field"
+		Name="B_ACK"
+		Left="142"
+		Top="248"
+		Width="8008"
+		Height="319"
+		Text="Belge Açıklaması"
+		BackStyle="1"
+		ClassName="Normal"
+		Style="font-family: &apos;verdana&apos;; ddo-char-set: 1; font-size: 8pt; background-color: rgb(224,224,224); vertical-align: middle; font-weight: bold; "
+		>
+		</Control>
+	</Section>
+	<Section Type="Detail" Name="SATIRLAR"
+		Height="285"
+	>
+		<Control 
+		Type="AR.Field"
+		Name="U_KODU"
+		Left="106"
+		Top="0"
+		Width="1488"
+		Height="248"
+		Text="Stok Kodu"
+		ClassName="Normal"
+		Style="font-family: &apos;verdana&apos;; ddo-char-set: 1; font-size: 8pt; "
+		>
+		</Control>
+		<Control 
+		Type="AR.Field"
+		Name="U_BFIYAT"
+		Left="5740"
+		Top="0"
+		Width="1028"
+		Height="248"
+		Text="Birim Fiyatı"
+		ClassName="Normal"
+		Style="font-family: &apos;verdana&apos;; ddo-char-set: 1; font-size: 8pt; text-align: right; "
+		>
+		</Control>
+		<Control 
+		Type="AR.Field"
+		Name="U_SM"
+		Left="8079"
+		Top="0"
+		Width="425"
+		Height="248"
+		Text="Satış Miktar"
+		ClassName="Normal"
+		Style="font-family: &apos;verdana&apos;; ddo-char-set: 1; font-size: 8pt; text-align: right; "
+		>
+		</Control>
+		<Control 
+		Type="AR.Field"
+		Name="U_BIRIM"
+		Left="8469"
+		Top="0"
+		Width="566"
+		Height="248"
+		Text="Birim"
+		ClassName="Normal"
+		Style="font-family: &apos;verdana&apos;; ddo-char-set: 1; font-size: 8pt; "
+		>
+		</Control>
+		<Control 
+		Type="AR.Field"
+		Name="U_STH"
+		Left="9177"
+		Top="0"
+		Width="1311"
+		Height="248"
+		Text="Satış Tutarı KDV&apos;siz"
+		ClassName="Normal"
+		Style="font-family: &apos;verdana&apos;; ddo-char-set: 1; font-size: 8pt; text-align: right; "
+		>
+		</Control>
+		<Control 
+		Type="AR.DataControl"
+		Name="DataControl1"
+		Left="3154"
+		Top="886"
+		Width="1275"
+		Height="390"
+		Visible="0"
+		LockType="1"
+		>
+		</Control>
+		<Control 
+		Type="AR.Line"
+		Name="Line1"
+		X1="142"
+		Y1="248"
+		X2="10488"
+		Y2="248"
+		LineStyle="2"
+		LineColor="12632256"
+		>
+		</Control>
+		<Control 
+		Type="AR.Field"
+		Name="U_KDVO"
+		Left="7299"
+		Top="0"
+		Width="425"
+		Height="248"
+		Text="KDV Oranı"
+		ClassName="Normal"
+		Style="font-family: &apos;verdana&apos;; ddo-char-set: 1; font-size: 8pt; "
+		>
+		</Control>
+		<Control 
+		Type="AR.Field"
+		Name="U_DNAME"
+		Left="1630"
+		Top="0"
+		Width="3437"
+		Height="248"
+		Text="Stok Adı"
+		ClassName="Normal"
+		Style="font-family: &apos;verdana&apos;; ddo-char-set: 1; font-size: 8pt; "
+		>
+		</Control>
+<Script>
+<![CDATA[
+Sub OnFormat
+
+End Sub
+]]></Script>
+	</Section>
+	<Section Type="GroupFooter" Name="GRUPSON"
+		Height="1290"
+	>
+		<Control 
+		Type="AR.Field"
+		Name="T_GENEL"
+		Left="8965"
+		Top="886"
+		Width="1488"
+		Height="248"
+		Text="Genel Toplam"
+		ClassName="Normal"
+		Style="font-family: &apos;verdana&apos;; ddo-char-set: 1; font-size: 8pt; text-align: right; font-weight: bold; "
+		>
+		</Control>
+		<Control 
+		Type="AR.Field"
+		Name="Field8"
+		Left="7476"
+		Top="886"
+		Width="1489"
+		Height="248"
+		Text="Genel Toplam"
+		ClassName="Normal"
+		Style="font-family: &apos;verdana&apos;; ddo-char-set: 1; font-size: 8pt; font-weight: bold; "
+		>
+		</Control>
+		<Control 
+		Type="AR.Field"
+		Name="T_ISK"
+		Left="8965"
+		Top="354"
+		Width="1488"
+		Height="248"
+		Text="İskonto"
+		ClassName="Normal"
+		Style="font-family: &apos;verdana&apos;; ddo-char-set: 1; font-size: 8pt; font-weight: bold; text-align: right; "
+		>
+		</Control>
+		<Control 
+		Type="AR.Field"
+		Name="T_KDV18"
+		Left="8965"
+		Top="638"
+		Width="1488"
+		Height="248"
+		Text="Kdv %18"
+		ClassName="Normal"
+		Style="font-family: &apos;verdana&apos;; ddo-char-set: 1; font-size: 8pt; font-weight: bold; text-align: right; "
+		>
+		</Control>
+		<Control 
+		Type="AR.Field"
+		Name="Field9"
+		Left="7476"
+		Top="71"
+		Width="1489"
+		Height="248"
+		Text="Ara Toplam"
+		ClassName="Normal"
+		Style="font-family: &apos;verdana&apos;; ddo-char-set: 1; font-size: 8pt; font-weight: bold; "
+		>
+		</Control>
+		<Control 
+		Type="AR.Field"
+		Name="Field10"
+		Left="7476"
+		Top="354"
+		Width="1489"
+		Height="248"
+		Text="İskonto"
+		ClassName="Normal"
+		Style="font-family: &apos;verdana&apos;; ddo-char-set: 1; font-size: 8pt; font-weight: bold; "
+		>
+		</Control>
+		<Control 
+		Type="AR.Field"
+		Name="Field11"
+		Left="7476"
+		Top="638"
+		Width="1489"
+		Height="248"
+		Text="KDV"
+		ClassName="Normal"
+		Style="font-family: &apos;verdana&apos;; ddo-char-set: 1; font-size: 8pt; font-weight: bold; "
+		>
+		</Control>
+		<Control 
+		Type="AR.Field"
+		Name="T_BRUT"
+		Left="8965"
+		Top="71"
+		Width="1488"
+		Height="248"
+		Text="Brüt toplam"
+		ClassName="Normal"
+		Style="font-family: &apos;verdana&apos;; ddo-char-set: 1; font-size: 8pt; font-weight: bold; text-align: right; "
+		>
+		</Control>
+<Script>
+<![CDATA[
+Sub OnFormat
+
+End Sub
+]]></Script>
+	</Section>
+	<Section Type="PageFooter" Name="SAYFASON"
+		Height="0"
+	>
+<Script>
+<![CDATA[
+Sub OnFormat
+
+End Sub
+]]></Script>
+	</Section>
+</Sections>
+</ActiveReportsLayout>
