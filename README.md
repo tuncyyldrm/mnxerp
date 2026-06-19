@@ -206,7 +206,7 @@ Veritabanı güncellemelerini otomatik uygulayan servistir.
 Kullanım:
 
 ```text
-http://localhost:3000/api/db-update?key=ŞİFRENİZ
+http://localhost:3000/db-update?key=ŞİFRENİZ
 ```
 
 ---
