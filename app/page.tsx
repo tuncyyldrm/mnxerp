@@ -532,11 +532,17 @@ export default function Katalog() {
                             <div className="relative group/img">
                               <div className={`w-16 h-16 rounded-xl border-2 p-1 transition-all
                               ${durum.isYok ? 'border-slate-100 bg-slate-50' : 'border-white bg-white shadow-sm group-hover/img:border-blue-100'}`}>
-                                <img
-                                  src={`/images/urunler/${getCleanedCode(item.urunkodu)}.jpg`}
-                                  className="w-full h-full object-contain"
-                                  alt=""
-                                />
+                                  <img
+                                    src={`/images/urunler/${getCleanedCode(item.urunkodu)}.jpg`}
+                                    className="w-full h-full object-contain animate-in zoom-in-95 duration-200 select-none"
+                                    alt={item.urun}
+                                    onError={(e) => {
+                                      const target = e.currentTarget;
+                                      if (target.src !== 'https://placehold.co/400x400?text=Resim+Yok') {
+                                        target.src = 'https://placehold.co/400x400?text=Resim+Yok';
+                                      }
+                                    }}
+                                  />
                                 <div className={`absolute -top-1 -right-1 w-3 h-3 rounded-full border-2 border-white ${durum.dot}`} />
                               </div>
                             </div>
