@@ -1,3 +1,6 @@
+-- ✨ Otomatik Üretilen Güncelleme Scripti (19.06.2026 23:48:40)
+-- ⚠️ Manuel düzenleme yapmayın, 'npm run db-pack' ile güncelleyin.
+
 -- ✨ Otomatik Üretilen Güncelleme Scripti (19.06.2026 22:19:41)
 -- ⚠️ Manuel düzenleme yapmayın, 'npm run db-pack' ile güncelleyin.
 

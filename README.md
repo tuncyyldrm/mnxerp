@@ -220,6 +220,7 @@ git add .
 git commit -m "update"
 git push
 ```
+npm run db-pack
 
 ## Güncellemeleri Alma
 
