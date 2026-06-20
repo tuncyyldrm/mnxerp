@@ -8,21 +8,17 @@ const config = {
     password: '2026',
     server: '127.0.0.1',
     database: 'ONEDB',
-    options: {
-        encrypt: false,
-        trustServerCertificate: true
-    }
+    options: { encrypt: false, trustServerCertificate: true }
 };
 
-// 🔐 güvenli identifier
-const q = (name) => `[${String(name).replace(/]/g, ']]')}]`;
-
+// 🎯 LİSTE: Buraya istediğin gibi yeni view, procedure veya index ekleyebilirsin. 
+// Akıllı altyapı sayesinde sıralama veya kolon bağımlılıkları otomatik çözülür.
 const BENIM_NESNELERIM = {
     views: [
-        'vw_CariEkstreDetay',
-        'V_CariAnalizRaporu',
+        'vw_CariEkstreDetay',    // Önce bağımsız ana ekstre görünümü kurulmalı
+        'V_CariAnalizRaporu',   // vw_CariEkstreDetay'ın kolonlarına bağımlı
         'vw_FaturaDetayRaporu',
-        'vw_StokListesi'
+        'vw_StokListesi'         // Gelecekte ekleyeceğin tüm yeni View'ları buraya eklemen yeterli!
     ],
     procedures: [
         'sp_StokDetayGetir',
@@ -36,221 +32,206 @@ const BENIM_NESNELERIM = {
         'IX_Stok_B2B_Search_Optimize',
         'IX_Stok_Urun_Arama',
         'IX_Stok_OEM_Search',
-        'IX_Islem_IslemNumarasi_Covering'
+        'IX_Islem_IslemNumarasi_Covering',
     ]
 };
 
 async function exportSchema() {
-    let pool;
-
     try {
-        console.log('🔌 SQL Server bağlanıyor...');
-        pool = await sql.connect(config);
-
-        let script = `
--- =====================================================
--- DB EXPORT (${new Date().toLocaleString('tr-TR')})
--- =====================================================
-
-`;
+        console.log('🔌 Kendi SQL Server\'ıma bağlanılıyor...');
+        const pool = await sql.connect(config);
+        
+        let finalSqlScript = `-- ✨ Otomatik Üretilen Güvenli Güncelleme Scripti (${new Date().toLocaleString('tr-TR')})\n`;
+        finalSqlScript += `-- ⚠️ Manuel düzenleme yapmayın, 'npm run db-pack' ile güncelleyin.\n`;
+        finalSqlScript += `-- 🛡️ Dükkan veritabanları için "Akıllı Dinamik Taslak (Dyna-Stub)" mimarisi aktiftir.\n\n`;
 
         const viewListStr = BENIM_NESNELERIM.views.map(v => `'${v}'`).join(',');
         const spListStr = BENIM_NESNELERIM.procedures.map(p => `'${p}'`).join(',');
         const indexListStr = BENIM_NESNELERIM.indexes.map(i => `'${i}'`).join(',');
 
-        // =====================================================
-        // 🧠 VIEW METADATA (DOĞRU YÖNTEM)
-        // =====================================================
-        console.log('🧠 View analiz...');
-
-        const viewMeta = await pool.request().query(`
+        // ====================================================
+        // 🔮 DİNAMİK VE AKILLI TASLAK (STUB) ANALİZ ADIMI
+        // ====================================================
+        console.log('🧠 Görünümlerin kolon yapıları dinamik olarak analiz ediliyor...');
+        const columnsResult = await pool.request().query(`
             SELECT 
-                o.name AS ViewName,
                 c.name AS ColumnName,
-                t.name AS DataType
+                OBJECT_NAME(c.object_id) AS ViewName,
+                t.name AS DataType,
+                CASE 
+                    WHEN t.name IN ('char', 'varchar', 'nchar', 'nvarchar') AND c.max_length = -1 THEN 'max'
+                    WHEN t.name IN ('char', 'varchar') THEN CAST(c.max_length AS VARCHAR)
+                    WHEN t.name IN ('nchar', 'nvarchar') THEN CAST(c.max_length / 2 AS VARCHAR)
+                    ELSE NULL
+                END AS Length
             FROM sys.columns c
-            JOIN sys.objects o ON c.object_id = o.object_id
             JOIN sys.types t ON c.user_type_id = t.user_type_id
-            WHERE o.type = 'V'
-              AND o.name IN (${viewListStr})
+            WHERE c.object_id IN (
+                SELECT object_id FROM sys.objects WHERE type = 'V' AND name IN (${viewListStr})
+            )
+            ORDER BY ViewName, c.column_id;
         `);
 
-        const viewMap = {};
-        viewMeta.recordset.forEach(r => {
-            if (!viewMap[r.ViewName]) viewMap[r.ViewName] = [];
-            viewMap[r.ViewName].push(
-                `CAST(NULL AS ${r.DataType}) AS ${q(r.ColumnName)}`
-            );
+        // Kolon verilerini View gruplarına göre haritala
+        const viewColumnsMap = {};
+        columnsResult.recordset.forEach(col => {
+            if (!viewColumnsMap[col.ViewName]) viewColumnsMap[col.ViewName] = [];
+            
+            let typeStr = col.DataType;
+            if (col.Length) typeStr += `(${col.Length})`;
+            
+            viewColumnsMap[col.ViewName].push(`CAST(NULL AS ${typeStr}) AS [${col.ColumnName}]`);
         });
 
-        // =====================================================
-        // 🛡️ STUB VIEW
-        // =====================================================
-        script += `-- STUB VIEWS\n`;
+        // Script Ön Hazırlık Alanı
+        finalSqlScript += `-- ----------------------------------------------------\n`;
+        finalSqlScript += `-- 🛡️ ÖN HAZIRLIK: EKSİK NESNELERİ AKILLI TASLAKLARLA ILK DEFA OLUŞTURMA\n`;
+        finalSqlScript += `-- ----------------------------------------------------\n\n`;
 
-        for (const v of BENIM_NESNELERIM.views) {
-            script += `
-IF OBJECT_ID(N'dbo.${v}', 'V') IS NULL
-BEGIN
-    EXEC('CREATE VIEW dbo.${v} AS SELECT 1 AS Dummy');
-END;
-GO
-`;
-        }
-
-        // =====================================================
-        // 📊 VIEW DEFINITIONS (DMV SAFE)
-        // =====================================================
-        console.log('🔍 View definition çekiliyor...');
-
-        const viewRes = await pool.request().query(`
-            SELECT o.name, sm.definition
-            FROM sys.sql_modules sm
-            JOIN sys.objects o ON sm.object_id = o.object_id
-            WHERE o.type = 'V'
-              AND o.name IN (${viewListStr})
-        `);
-
-        const viewDefMap = {};
-        viewRes.recordset.forEach(r => viewDefMap[r.name] = r.definition);
-
-        script += `-- VIEW DEFINITIONS\n`;
-
-        for (const v of BENIM_NESNELERIM.views) {
-            const def = viewDefMap[v];
-            if (!def) {
-                console.warn(`⚠️ Missing VIEW: ${v}`);
-                continue;
-            }
-
-            script += `
-${def.replace(/CREATE\s+VIEW/i, 'ALTER VIEW')}
-GO
-`;
-        }
-
-        // =====================================================
-        // ⚡ STORED PROCEDURES
-        // =====================================================
-        console.log('🔍 SP çekiliyor...');
-
-        const spRes = await pool.request().query(`
-            SELECT o.name, sm.definition
-            FROM sys.sql_modules sm
-            JOIN sys.objects o ON sm.object_id = o.object_id
-            WHERE o.type = 'P'
-              AND o.name IN (${spListStr})
-        `);
-
-        const spMap = {};
-        spRes.recordset.forEach(r => spMap[r.name] = r.definition);
-
-        script += `-- STORED PROCEDURES\n`;
-
-        for (const sp of BENIM_NESNELERIM.procedures) {
-            const def = spMap[sp];
-            if (!def) {
-                console.warn(`⚠️ Missing SP: ${sp}`);
-                continue;
-            }
-
-            script += `
-${def
-    .replace(/CREATE\s+PROCEDURE/i, 'ALTER PROCEDURE')
-    .replace(/CREATE\s+PROC/i, 'ALTER PROCEDURE')}
-GO
-`;
-        }
-
-        // =====================================================
-        // 🛠️ INDEXES (FIXED + SAFE)
-        // =====================================================
-        console.log('🔍 Index analizi...');
-
-        const idxRes = await pool.request().query(`
-            SELECT 
-                i.name AS IndexName,
-                s.name AS SchemaName,
-                t.name AS TableName,
-                ic.is_included_column,
-                c.name AS ColumnName,
-                ic.is_descending_key,
-                ic.key_ordinal
-            FROM sys.indexes i
-            JOIN sys.tables t ON i.object_id = t.object_id
-            JOIN sys.schemas s ON t.schema_id = s.schema_id
-            JOIN sys.index_columns ic ON i.object_id = ic.object_id AND i.index_id = ic.index_id
-            JOIN sys.columns c ON ic.object_id = c.object_id AND ic.column_id = c.column_id
-            WHERE i.name IN (${indexListStr})
-        `);
-
-        const indexMap = {};
-
-        idxRes.recordset.forEach(r => {
-            const key = `${r.IndexName}||${r.SchemaName}||${r.TableName}`;
-
-            if (!indexMap[key]) {
-                indexMap[key] = {
-                    schema: r.SchemaName,
-                    table: r.TableName,
-                    keys: [],
-                    includes: []
-                };
-            }
-
-            if (r.is_included_column) {
-                indexMap[key].includes.push(r.ColumnName);
+        // 🚀 Her View için lokaldeki şemayı birebir taklit eden taslak (Stub) oluşturma
+        BENIM_NESNELERIM.views.forEach(viewName => {
+            finalSqlScript += `IF NOT EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[${viewName}]') AND type in (N'V'))\n`;
+            finalSqlScript += `BEGIN\n`;
+            
+            const cols = viewColumnsMap[viewName];
+            if (cols && cols.length > 0) {
+                // Görünüm lokaldeki sütunlarının tipleriyle birebir sahte select olarak doğar!
+                const stubSelect = `SELECT ${cols.join(', ')}`;
+                // SQL Server tırnak kaçış hatası vermesin diye tek tırnakları dubleliyoruz
+                const safeStubSelect = stubSelect.replace(/'/g, "''");
+                finalSqlScript += `    EXEC('CREATE VIEW [dbo].[${viewName}] AS ${safeStubSelect}');\n`;
             } else {
-                indexMap[key].keys.push(
-                    r.ColumnName + (r.is_descending_key ? ' DESC' : ' ASC')
-                );
+                finalSqlScript += `    EXEC('CREATE VIEW [dbo].[${viewName}] AS SELECT 1 as TaslakKolon');\n`;
             }
+            
+            finalSqlScript += `END;\nGO\n\n`;
         });
 
-        script += `-- INDEXES\n`;
+        // Olmayan SP'ler için standart boş taslak oluştur
+        BENIM_NESNELERIM.procedures.forEach(spName => {
+            finalSqlScript += `IF NOT EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[${spName}]') AND type in (N'P', N'PC'))\n`;
+            finalSqlScript += `BEGIN\n    EXEC('CREATE PROCEDURE [dbo].[${spName}] AS BEGIN SET NOCOUNT ON; END');\nEND;\nGO\n`;
+        });
+        finalSqlScript += `\n`;
 
-        for (const k of Object.keys(indexMap)) {
-            const i = indexMap[k];
-            const table = `${q(i.schema)}.${q(i.table)}`;
-            const idxName = k.split('||')[0];
+        // ---- 1. ADIM: VIEW'LARI ÇEK (SIRALAMA KORUMALI) ----
+        if (BENIM_NESNELERIM.views.length > 0) {
+            console.log('🔍 View gövdeleri çekiliyor...');
+            const viewResult = await pool.request().query(`
+                SELECT o.name, sm.definition FROM sys.sql_modules sm
+                JOIN sys.objects o ON sm.object_id = o.object_id
+                WHERE o.type = 'V' AND o.name IN (${viewListStr})
+            `);
+            
+            finalSqlScript += `-- ----------------------------------------------------\n`;
+            finalSqlScript += `-- 📊 AŞAMA 1: VIEW GÜNCELLEMELERİ (ASIL GÖVDELER)\n`;
+            finalSqlScript += `-- ----------------------------------------------------\n\n`;
+            
+            const viewMap = {};
+            viewResult.recordset.forEach(row => {
+                viewMap[row.name] = row.definition;
+            });
 
-            script += `
--- ${idxName}
-IF OBJECT_ID('${i.schema}.${i.table}', 'U') IS NOT NULL
-BEGIN
-    IF EXISTS (
-        SELECT 1 FROM sys.indexes 
-        WHERE name = '${idxName}' 
-        AND object_id = OBJECT_ID('${i.schema}.${i.table}')
-    )
-    BEGIN
-        DROP INDEX ${q(idxName)} ON ${table};
-    END;
-
-    CREATE NONCLUSTERED INDEX ${q(idxName)}
-    ON ${table} (${i.keys.join(', ') || '1=1'})
-    ${i.includes.length ? `INCLUDE (${i.includes.join(', ')})` : ''};
-END;
-GO
-`;
+            // SQL Server'dan gelen karmaşık sıralamayı yoksayıp BENIM_NESNELERIM dizisindeki sırayı koruyoruz
+            BENIM_NESNELERIM.views.forEach(viewName => {
+                const rawDef = viewMap[viewName];
+                if (rawDef) {
+                    let definition = rawDef.replace(/CREATE\s+VIEW/i, 'ALTER VIEW');
+                    finalSqlScript += `${definition.trim()}\nGO\n\n`;
+                }
+            });
         }
 
-        // =====================================================
-        // 💾 OUTPUT FILE
-        // =====================================================
-        const dir = path.join(process.cwd(), 'DB');
-        if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+        // ---- 2. ADIM: STORED PROCEDURE'LERİ ÇEK ----
+        if (BENIM_NESNELERIM.procedures.length > 0) {
+            console.log('🔍 Stored Procedure yapıları çekiliyor...');
+            const spResult = await pool.request().query(`
+                SELECT o.name, sm.definition FROM sys.sql_modules sm
+                JOIN sys.objects o ON sm.object_id = o.object_id
+                WHERE o.type = 'P' AND o.name IN (${spListStr})
+            `);
+            finalSqlScript += `-- ----------------------------------------------------\n`;
+            finalSqlScript += `-- ⚡ AŞAMA 2: STORED PROCEDURE GÜNCELLEMELERİ (ASIL GÖVDELER)\n`;
+            finalSqlScript += `-- ----------------------------------------------------\n\n`;
 
-        const file = path.join(dir, `guncelleme.sql`);
+            const spMap = {};
+            spResult.recordset.forEach(row => {
+                spMap[row.name] = row.definition;
+            });
+
+            BENIM_NESNELERIM.procedures.forEach(spName => {
+                const rawDef = spMap[spName];
+                if (rawDef) {
+                    let definition = rawDef.replace(/CREATE\s+PROCEDURE/i, 'ALTER PROCEDURE');
+                    definition = definition.replace(/CREATE\s+PROC/i, 'ALTER PROCEDURE');
+                    finalSqlScript += `${definition.trim()}\nGO\n\n`;
+                }
+            });
+        }
+
+// ---- 3. ADIM: DİNAMİK INDEX SCRIPTINI OLUŞTUR ----
+        if (BENIM_NESNELERIM.indexes.length > 0) {
+            console.log('🔍 Index yapıları analiz ediliyor...');
+            
+            const indexResult = await pool.request().query(`
+                SELECT 
+                    i.name AS IndexName,
+                    OBJECT_SCHEMA_NAME(i.object_id) AS SchemaName,
+                    OBJECT_NAME(i.object_id) AS TableName,
+                    -- Key Kolonları (Doğru Index ID eşleşmesiyle)
+                    STUFF((SELECT ',' + c.name + CASE WHEN ic.is_descending_key = 1 THEN ' DESC' ELSE ' ASC' END
+                           FROM sys.index_columns ic 
+                           JOIN sys.columns c ON ic.object_id = c.object_id AND ic.column_id = c.column_id
+                           WHERE ic.object_id = i.object_id AND ic.index_id = i.index_id AND ic.is_included_column = 0
+                           ORDER BY ic.key_ordinal
+                           FOR XML PATH('')), 1, 1, '') AS KeyColumns,
+                    -- Include Kolonları (Düzeltilen Yer: ic.index_id = i.index_id)
+                    STUFF((SELECT ',' + c.name
+                           FROM sys.index_columns ic 
+                           JOIN sys.columns c ON ic.object_id = c.object_id AND ic.column_id = c.column_id
+                           WHERE ic.object_id = i.object_id AND ic.index_id = i.index_id AND ic.is_included_column = 1
+                           ORDER BY ic.index_column_id
+                           FOR XML PATH('')), 1, 1, '') AS IncludeColumns
+                FROM sys.indexes i
+                WHERE i.name IN (${indexListStr})
+            `);
+
+            finalSqlScript += `-- ----------------------------------------------------\n`;
+            finalSqlScript += `-- 🛠️ AŞAMA 3: INDEX OPTİMİZASYONLARI\n`;
+            finalSqlScript += `-- ----------------------------------------------------\n\n`;
+
+            indexResult.recordset.forEach(row => {
+                const fullTableName = `[${row.SchemaName}].[${row.TableName}]`;
+                
+                finalSqlScript += `-- ⚡ Index: ${row.IndexName} (Tablo: ${fullTableName})\n`;
+                finalSqlScript += `IF EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID('${fullTableName}') AND type in (N'U'))\n`;
+                finalSqlScript += `BEGIN\n`;
+                finalSqlScript += `    IF EXISTS (SELECT * FROM sys.indexes WHERE name = '${row.IndexName}' AND object_id = OBJECT_ID('${fullTableName}'))\n`;
+                finalSqlScript += `    BEGIN\n         DROP INDEX [${row.IndexName}] ON ${fullTableName};\n    END;\n`;
+                
+                if (row.IncludeColumns) {
+                    finalSqlScript += `    CREATE NONCLUSTERED INDEX [${row.IndexName}] ON ${fullTableName} (${row.KeyColumns}) INCLUDE (${row.IncludeColumns});\n`;
+                } else {
+                    finalSqlScript += `    CREATE NONCLUSTERED INDEX [${row.IndexName}] ON ${fullTableName} (${row.KeyColumns});\n`;
+                }
+                finalSqlScript += `END;\nGO\n\n`;
+            });
+        }
+
+        // ---- 4. ADIM: DOSYAYA YAZMA ----
+        const dbDir = path.join(process.cwd(), 'DB');
+        if (!fs.existsSync(dbDir)) {
+            fs.mkdirSync(dbDir, { recursive: true });
+        }
         
-        fs.writeFileSync(file, script, 'utf8');
-
-        console.log('✅ Export tamamlandı:', file);
-
+        const outputPath = path.join(dbDir, 'guncelleme.sql');
+        fs.writeFileSync(outputPath, finalSqlScript, 'utf8');
+        
+        console.log(`✅ Harika! Kurşun geçirmez güncelleme scripti 'DB/guncelleme.sql' dosyasına paketlendi.`);
+        await sql.close();
     } catch (err) {
-        console.error('❌ HATA:', err);
-    } finally {
-        if (pool) await sql.close();
+        console.error('❌ Hata oluştu:', err);
+        try { await sql.close(); } catch(e) {}
     }
 }
 
