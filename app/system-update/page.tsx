@@ -3,6 +3,12 @@
 import { useEffect, useState, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 
+// Log satırlarını benzersiz kılmak için tip tanımı
+interface LogItem {
+  id: string;
+  message: string;
+}
+
 function SystemUpdateContent() {
   const searchParams = useSearchParams();
   const key = searchParams.get('key');
@@ -10,18 +16,18 @@ function SystemUpdateContent() {
   // Durumlar: 'idle' (başlamadı), 'loading' (güncelleniyor), 'success' (başarılı), 'error' (hata)
   const [status, setStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
   const [progress, setProgress] = useState(0);
-  const [logs, setLogs] = useState<string[]>([]);
+  const [logs, setLogs] = useState<LogItem[]>([]);
 
   const sistemiGuncelle = () => {
     if (!key) {
       setStatus('error');
-      setLogs(['Geçersiz istek: Güvenlik anahtarı (key) eksik!']);
+      setLogs([{ id: 'err-init', message: 'Geçersiz istek: Güvenlik anahtarı (key) eksik!' }]);
       return;
     }
 
     // Güncellemeyi loading moduna çekip canlı akışı tetikliyoruz
     setStatus('loading');
-    setLogs(['Güncelleme süreci kullanıcı onayı ile başlatıldı...']);
+    setLogs([{ id: `log-${Date.now()}-0`, message: 'Güncelleme süreci kullanıcı onayı ile başlatıldı...' }]);
 
     const eventSource = new EventSource(`/api/system-sync?key=${key}`);
 
@@ -31,22 +37,29 @@ function SystemUpdateContent() {
         setStatus(data.status);
         setProgress(data.progress);
         
-        // Gelen canlı mesajı log listesinin en üstüne ekle
-        setLogs((prevLogs) => [data.message, ...prevLogs]);
+        // Gelen her canlı mesaj için benzersiz bir milisaniye + rastgele ID üretip listenin en üstüne ekliyoruz
+        const uniqueId = `log-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+        setLogs((prevLogs) => [{ id: uniqueId, message: data.message }, ...prevLogs]);
 
         if (data.status === 'success' || data.status === 'error') {
           eventSource.close();
         }
       } catch (err) {
         setStatus('error');
-        setLogs(['Canlı veri akışı çözümlenemedi.']);
+        setLogs((prevLogs) => [
+          { id: `err-${Date.now()}`, message: 'Canlı veri akışı çözümlenemedi.' },
+          ...prevLogs
+        ]);
         eventSource.close();
       }
     };
 
     eventSource.onerror = () => {
       setStatus('error');
-      setLogs(['Sunucuyla canlı bağlantı koptu veya zaman aşımı oluştu. PM2 süreci tetiklemiş olabilir.']);
+      setLogs((prevLogs) => [
+        { id: `err-conn-${Date.now()}`, message: 'Sunucuyla canlı bağlantı koptu veya zaman aşımı oluştu. PM2/Sistem süreci yenileniyor olabilir...' },
+        ...prevLogs
+      ]);
       eventSource.close();
     };
   };
@@ -91,9 +104,16 @@ function SystemUpdateContent() {
             <div style={styles.logContainer}>
               <div style={styles.logHeader}>Canlı İşlem Raporu:</div>
               <div style={styles.logBox}>
-                {logs.map((log, index) => (
-                  <div key={index} style={{ ...styles.logLine, color: index === 0 ? (status === 'error' ? '#ff7675' : '#ffeaa7') : '#b2bec3', fontWeight: index === 0 ? 'bold' : 'normal' }}>
-                    {log}
+                {logs.map((item, index) => (
+                  <div 
+                    key={item.id} 
+                    style={{ 
+                      ...styles.logLine, 
+                      color: index === 0 ? (status === 'error' ? '#ff7675' : '#ffeaa7') : '#b2bec3', 
+                      fontWeight: index === 0 ? 'bold' : 'normal' 
+                    }}
+                  >
+                    {item.message}
                   </div>
                 ))}
               </div>
