@@ -1,35 +1,36 @@
--- ✨ Otomatik Üretilen Güvenli Güncelleme Scripti (20.06.2026 20:41:07)
--- ⚠️ Manuel düzenleme yapmayın, 'npm run db-pack' ile güncelleyin.
--- 🛡️ Dükkan veritabanları için "Akıllı Dinamik Taslak (Dyna-Stub)" mimarisi aktiftir.
+/* =========================================================================
+    ✨ %100 SIFIR KURULUM VE GÜNCELLEME UYUMLU OTOMATİK ÜRETİLEN SCRIPT
+    Generated: 21.06.2026 00:43:01
+    🛡️ Akıllı Dinamik Taslak (Dyna-Stub) Mimarisi & Index Koruması Aktiftir.
+========================================================================= */
 
--- ----------------------------------------------------
--- 🛡️ ÖN HAZIRLIK: EKSİK NESNELERİ AKILLI TASLAKLARLA ILK DEFA OLUŞTURMA
--- ----------------------------------------------------
+SET NOCOUNT ON;
+GO
+
+/* ===================== 🛡️ ADIM 1: DYNAMIC STUBS (İLK KURULUM DESTEĞİ) ===================== */
+-- Hedef DB sıfırsa (İlk Kurulum) ALTER komutlarının patlamaması için hafif taslaklar oluşturulur.
+-- Nesneler dükkanda zaten varsa bu adım pas geçilir, mevcut kodlar asla silinmez!
 
 IF NOT EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[vw_CariEkstreDetay]') AND type in (N'V'))
 BEGIN
-    EXEC('CREATE VIEW [dbo].[vw_CariEkstreDetay] AS SELECT CAST(NULL AS int) AS [CariID], CAST(NULL AS varchar(50)) AS [CariKodu], CAST(NULL AS varchar(500)) AS [FirmaAdi], CAST(NULL AS int) AS [IslemNo], CAST(NULL AS datetime) AS [IslemTarihi], CAST(NULL AS nvarchar(100)) AS [BelgeNo], CAST(NULL AS nvarchar(100)) AS [IslemTipi], CAST(NULL AS float) AS [IslemTutari], CAST(NULL AS varchar(1)) AS [Yon]');
+    EXEC('CREATE VIEW [dbo].[vw_CariEkstreDetay] AS SELECT CAST(1 AS int) AS [GeciciKolon]');
 END;
 GO
-
 IF NOT EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[V_CariAnalizRaporu]') AND type in (N'V'))
 BEGIN
-    EXEC('CREATE VIEW [dbo].[V_CariAnalizRaporu] AS SELECT CAST(NULL AS int) AS [id], CAST(NULL AS varchar(50)) AS [kodu], CAST(NULL AS varchar(500)) AS [firma], CAST(NULL AS varchar(50)) AS [sehir], CAST(NULL AS varchar(18)) AS [CariTipi], CAST(NULL AS float) AS [NetBakiyeTL], CAST(NULL AS varchar(12)) AS [Kanali], CAST(NULL AS datetime) AS [SonIslemTarihi], CAST(NULL AS int) AS [GecikmeGunSayisi]');
+    EXEC('CREATE VIEW [dbo].[V_CariAnalizRaporu] AS SELECT CAST(1 AS int) AS [GeciciKolon]');
 END;
 GO
-
 IF NOT EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[vw_FaturaDetayRaporu]') AND type in (N'V'))
 BEGIN
-    EXEC('CREATE VIEW [dbo].[vw_FaturaDetayRaporu] AS SELECT CAST(NULL AS int) AS [IslemNo], CAST(NULL AS nvarchar(255)) AS [CariAdi], CAST(NULL AS nvarchar(100)) AS [IslemTipi], CAST(NULL AS datetime) AS [FaturaTarihi], CAST(NULL AS nvarchar(100)) AS [BelgeNo], CAST(NULL AS float) AS [FaturaToplamTutar], CAST(NULL AS nvarchar(max)) AS [FaturaNotu], CAST(NULL AS int) AS [SatirId], CAST(NULL AS nvarchar(255)) AS [UrunAdi], CAST(NULL AS nvarchar(100)) AS [StokKodu], CAST(NULL AS nvarchar(50)) AS [Birim], CAST(NULL AS float) AS [BirimFiyat], CAST(NULL AS int) AS [KdvOrani], CAST(NULL AS float) AS [KdvTutari], CAST(NULL AS float) AS [KdvDahilBirimFiyat], CAST(NULL AS float) AS [Miktar], CAST(NULL AS decimal) AS [SatirTutarı]');
+    EXEC('CREATE VIEW [dbo].[vw_FaturaDetayRaporu] AS SELECT CAST(1 AS int) AS [GeciciKolon]');
 END;
 GO
-
 IF NOT EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[vw_StokListesi]') AND type in (N'V'))
 BEGIN
-    EXEC('CREATE VIEW [dbo].[vw_StokListesi] AS SELECT CAST(NULL AS varchar(300)) AS [urunkodu], CAST(NULL AS varchar(300)) AS [urun], CAST(NULL AS varchar(300)) AS [urunalt], CAST(NULL AS varchar(300)) AS [ureticifirma], CAST(NULL AS varchar(300)) AS [grubu], CAST(NULL AS varchar(300)) AS [kateGOri], CAST(NULL AS varchar(300)) AS [tipi], CAST(NULL AS varchar(50)) AS [Raf], CAST(NULL AS float) AS [fiyatı], CAST(NULL AS varchar(350)) AS [OEM], CAST(NULL AS float) AS [STK_FULL], CAST(NULL AS varchar(350)) AS [OEM_0], CAST(NULL AS varchar(350)) AS [OEM_1], CAST(NULL AS varchar(350)) AS [OEM_2], CAST(NULL AS varchar(350)) AS [OEM_3], CAST(NULL AS varchar(350)) AS [OEM_4], CAST(NULL AS int) AS [OEM_5], CAST(NULL AS int) AS [OEM_6], CAST(NULL AS int) AS [OEM_7], CAST(NULL AS int) AS [OEM_8], CAST(NULL AS int) AS [OEM_9], CAST(NULL AS float) AS [MevcutBakiye]');
+    EXEC('CREATE VIEW [dbo].[vw_StokListesi] AS SELECT CAST(1 AS int) AS [GeciciKolon]');
 END;
 GO
-
 IF NOT EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[sp_StokDetayGetir]') AND type in (N'P', N'PC'))
 BEGIN
     EXEC('CREATE PROCEDURE [dbo].[sp_StokDetayGetir] AS BEGIN SET NOCOUNT ON; END');
@@ -46,6 +47,8 @@ BEGIN
 END;
 GO
 
+/* ===================== 📊 ADIM 2: VIEW GÜNCELLEMELERİ (ALTER) ===================== */
+/* ===================== 📊 ADIM 2: VIEW GÜNCELLEMELERİ (ALTER) ===================== */
 -- ----------------------------------------------------
 -- 📊 AŞAMA 1: VIEW GÜNCELLEMELERİ (ASIL GÖVDELER)
 -- ----------------------------------------------------
@@ -213,6 +216,9 @@ OUTER APPLY (
 ) AS bakiye;
 GO
 
+
+/* ===================== ⚡ ADIM 3: STORED PROCEDURE GÜNCELLEMELERİ ===================== */
+/* ===================== ⚡ ADIM 3: STORED PROCEDURE GÜNCELLEMELERİ ===================== */
 -- ----------------------------------------------------
 -- ⚡ AŞAMA 2: STORED PROCEDURE GÜNCELLEMELERİ (ASIL GÖVDELER)
 -- ----------------------------------------------------
@@ -280,84 +286,79 @@ BEGIN
 END
 GO
 
--- ----------------------------------------------------
--- 🛠️ AŞAMA 3: INDEX OPTİMİZASYONLARI
--- ----------------------------------------------------
 
--- ⚡ Index: IX_IslemKaydi_Covering_Amor (Tablo: [dbo].[islemkaydı])
-IF EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID('[dbo].[islemkaydı]') AND type in (N'U'))
+/* ===================== 🛠️ ADIM 4: HIGH-PERFORMANCE INDEXES ===================== */
+
+IF EXISTS (SELECT 1 FROM sys.objects WHERE object_id = OBJECT_ID('dbo.islemkaydı') AND type = 'U')
 BEGIN
-    IF EXISTS (SELECT * FROM sys.indexes WHERE name = 'IX_IslemKaydi_Covering_Amor' AND object_id = OBJECT_ID('[dbo].[islemkaydı]'))
+    IF EXISTS (SELECT 1 FROM sys.indexes WHERE name='IX_IslemKaydi_Covering_Amor' AND object_id = OBJECT_ID('dbo.islemkaydı'))
     BEGIN
-         DROP INDEX [IX_IslemKaydi_Covering_Amor] ON [dbo].[islemkaydı];
+        DROP INDEX [IX_IslemKaydi_Covering_Amor] ON dbo.islemkaydı;
     END;
-    CREATE NONCLUSTERED INDEX [IX_IslemKaydi_Covering_Amor] ON [dbo].[islemkaydı] (ikid ASC) INCLUDE (id_name,belgetarihi,belgesaati,faturanumarası,belgenumarası,islemtipi,BB_TL,AB_TL);
+    CREATE NONCLUSTERED INDEX [IX_IslemKaydi_Covering_Amor] ON dbo.islemkaydı (ikid) INCLUDE (id_name,belgetarihi,belgesaati,faturanumarası,belgenumarası,islemtipi,BB_TL,AB_TL);
 END;
 GO
 
--- ⚡ Index: IX_Islem_DetayKodu_Bakiye_Optimize (Tablo: [dbo].[islem])
-IF EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID('[dbo].[islem]') AND type in (N'U'))
+IF EXISTS (SELECT 1 FROM sys.objects WHERE object_id = OBJECT_ID('dbo.islem') AND type = 'U')
 BEGIN
-    IF EXISTS (SELECT * FROM sys.indexes WHERE name = 'IX_Islem_DetayKodu_Bakiye_Optimize' AND object_id = OBJECT_ID('[dbo].[islem]'))
+    IF EXISTS (SELECT 1 FROM sys.indexes WHERE name='IX_Islem_IslemNumarasi_Covering' AND object_id = OBJECT_ID('dbo.islem'))
     BEGIN
-         DROP INDEX [IX_Islem_DetayKodu_Bakiye_Optimize] ON [dbo].[islem];
+        DROP INDEX [IX_Islem_IslemNumarasi_Covering] ON dbo.islem;
     END;
-    CREATE NONCLUSTERED INDEX [IX_Islem_DetayKodu_Bakiye_Optimize] ON [dbo].[islem] (detay_kodu ASC,I_DATE ASC,I_TIME ASC) INCLUDE (alısmiktar,satısmiktar,I_TYPE,birimfiyat,depo,ikid_bag);
+    CREATE NONCLUSTERED INDEX [IX_Islem_IslemNumarasi_Covering] ON dbo.islem (islemnumarası) INCLUDE (islemid,detay,detay_kodu,birim,birimfiyat,kdvoranı,kdv,alısmiktar,satısmiktar,alıstutarı,satıstutarı,kasaid,bankaid,Cariid,net);
 END;
 GO
 
--- ⚡ Index: IX_Islem_IslemNumarasi_Covering (Tablo: [dbo].[islem])
-IF EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID('[dbo].[islem]') AND type in (N'U'))
+IF EXISTS (SELECT 1 FROM sys.objects WHERE object_id = OBJECT_ID('dbo.islem') AND type = 'U')
 BEGIN
-    IF EXISTS (SELECT * FROM sys.indexes WHERE name = 'IX_Islem_IslemNumarasi_Covering' AND object_id = OBJECT_ID('[dbo].[islem]'))
+    IF EXISTS (SELECT 1 FROM sys.indexes WHERE name='IX_Islem_DetayKodu_Bakiye_Optimize' AND object_id = OBJECT_ID('dbo.islem'))
     BEGIN
-         DROP INDEX [IX_Islem_IslemNumarasi_Covering] ON [dbo].[islem];
+        DROP INDEX [IX_Islem_DetayKodu_Bakiye_Optimize] ON dbo.islem;
     END;
-    CREATE NONCLUSTERED INDEX [IX_Islem_IslemNumarasi_Covering] ON [dbo].[islem] (islemnumarası ASC) INCLUDE (islemid,detay,detay_kodu,birim,birimfiyat,kdvoranı,kdv,alısmiktar,satısmiktar,alıstutarı,satıstutarı,kasaid,bankaid,Cariid,net);
+    CREATE NONCLUSTERED INDEX [IX_Islem_DetayKodu_Bakiye_Optimize] ON dbo.islem (detay_kodu, I_DATE, I_TIME) INCLUDE (alısmiktar,satısmiktar,I_TYPE,birimfiyat,depo,ikid_bag);
 END;
 GO
 
--- ⚡ Index: IX_Stok_Filtreleme_Master (Tablo: [dbo].[stok])
-IF EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID('[dbo].[stok]') AND type in (N'U'))
+IF EXISTS (SELECT 1 FROM sys.objects WHERE object_id = OBJECT_ID('dbo.stok') AND type = 'U')
 BEGIN
-    IF EXISTS (SELECT * FROM sys.indexes WHERE name = 'IX_Stok_Filtreleme_Master' AND object_id = OBJECT_ID('[dbo].[stok]'))
+    IF EXISTS (SELECT 1 FROM sys.indexes WHERE name='IX_Stok_B2B_Search_Optimize' AND object_id = OBJECT_ID('dbo.stok'))
     BEGIN
-         DROP INDEX [IX_Stok_Filtreleme_Master] ON [dbo].[stok];
+        DROP INDEX [IX_Stok_B2B_Search_Optimize] ON dbo.stok;
     END;
-    CREATE NONCLUSTERED INDEX [IX_Stok_Filtreleme_Master] ON [dbo].[stok] (grubu ASC,kateGOri ASC,tipi ASC) INCLUDE (urunkodu,urun,fiyatı,STK_FULL,Raf);
+    CREATE NONCLUSTERED INDEX [IX_Stok_B2B_Search_Optimize] ON dbo.stok (urunkodu) INCLUDE (urun,urunalt,ureticifirma,grubu,kategori,tipi,Raf,fiyatı,OEM,STK_FULL,OEM_0,OEM_1,OEM_2,OEM_3,OEM_4);
 END;
 GO
 
--- ⚡ Index: IX_Stok_Urun_Arama (Tablo: [dbo].[stok])
-IF EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID('[dbo].[stok]') AND type in (N'U'))
+IF EXISTS (SELECT 1 FROM sys.objects WHERE object_id = OBJECT_ID('dbo.stok') AND type = 'U')
 BEGIN
-    IF EXISTS (SELECT * FROM sys.indexes WHERE name = 'IX_Stok_Urun_Arama' AND object_id = OBJECT_ID('[dbo].[stok]'))
+    IF EXISTS (SELECT 1 FROM sys.indexes WHERE name='IX_Stok_Urun_Arama' AND object_id = OBJECT_ID('dbo.stok'))
     BEGIN
-         DROP INDEX [IX_Stok_Urun_Arama] ON [dbo].[stok];
+        DROP INDEX [IX_Stok_Urun_Arama] ON dbo.stok;
     END;
-    CREATE NONCLUSTERED INDEX [IX_Stok_Urun_Arama] ON [dbo].[stok] (urun ASC) INCLUDE (urunkodu,fiyatı,STK_FULL,Raf,grubu);
+    CREATE NONCLUSTERED INDEX [IX_Stok_Urun_Arama] ON dbo.stok (urun) INCLUDE (urunkodu,fiyatı,STK_FULL,Raf,grubu);
 END;
 GO
 
--- ⚡ Index: IX_Stok_B2B_Search_Optimize (Tablo: [dbo].[stok])
-IF EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID('[dbo].[stok]') AND type in (N'U'))
+IF EXISTS (SELECT 1 FROM sys.objects WHERE object_id = OBJECT_ID('dbo.stok') AND type = 'U')
 BEGIN
-    IF EXISTS (SELECT * FROM sys.indexes WHERE name = 'IX_Stok_B2B_Search_Optimize' AND object_id = OBJECT_ID('[dbo].[stok]'))
+    IF EXISTS (SELECT 1 FROM sys.indexes WHERE name='IX_Stok_Filtreleme_Master' AND object_id = OBJECT_ID('dbo.stok'))
     BEGIN
-         DROP INDEX [IX_Stok_B2B_Search_Optimize] ON [dbo].[stok];
+        DROP INDEX [IX_Stok_Filtreleme_Master] ON dbo.stok;
     END;
-    CREATE NONCLUSTERED INDEX [IX_Stok_B2B_Search_Optimize] ON [dbo].[stok] (urunkodu ASC) INCLUDE (urun,urunalt,ureticifirma,grubu,kateGOri,tipi,Raf,fiyatı,OEM,STK_FULL,OEM_0,OEM_1,OEM_2,OEM_3,OEM_4);
+    CREATE NONCLUSTERED INDEX [IX_Stok_Filtreleme_Master] ON dbo.stok (grubu, kategori, tipi) INCLUDE (urunkodu,urun,fiyatı,STK_FULL,Raf);
 END;
 GO
 
--- ⚡ Index: IX_Stok_OEM_Search (Tablo: [dbo].[stok])
-IF EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID('[dbo].[stok]') AND type in (N'U'))
+IF EXISTS (SELECT 1 FROM sys.objects WHERE object_id = OBJECT_ID('dbo.stok') AND type = 'U')
 BEGIN
-    IF EXISTS (SELECT * FROM sys.indexes WHERE name = 'IX_Stok_OEM_Search' AND object_id = OBJECT_ID('[dbo].[stok]'))
+    IF EXISTS (SELECT 1 FROM sys.indexes WHERE name='IX_Stok_OEM_Search' AND object_id = OBJECT_ID('dbo.stok'))
     BEGIN
-         DROP INDEX [IX_Stok_OEM_Search] ON [dbo].[stok];
+        DROP INDEX [IX_Stok_OEM_Search] ON dbo.stok;
     END;
-    CREATE NONCLUSTERED INDEX [IX_Stok_OEM_Search] ON [dbo].[stok] (OEM ASC) INCLUDE (urunkodu,urun);
+    CREATE NONCLUSTERED INDEX [IX_Stok_OEM_Search] ON dbo.stok (OEM) INCLUDE (urunkodu,urun);
 END;
 GO
 
+PRINT '⚡ Kurulum/Güncelleme başarıyla tamamlandı. Plan hafızası sıfırlanıyor...';
+DBCC FREEPROCCACHE;
+GO
