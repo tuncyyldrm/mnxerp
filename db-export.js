@@ -11,11 +11,11 @@ const config = {
     options: { encrypt: false, trustServerCertificate: true }
 };
 
-// 🎯 NOKTA ATIŞI LİSTE: Sadece senin yazdığın ve projeye ait yapılar
+// 🎯 NOKTA ATIŞI LİSTE: Bağımlılık sırasına göre tam hizalanmış liste
 const BENIM_NESNELERIM = {
     views: [
-        'V_CariAnalizRaporu',
-        'vw_CariEkstreDetay',
+        'vw_CariEkstreDetay',    // 🔥 KRİTİK: Önce bağımsız ana ekstre görünümü kurulmalı!
+        'V_CariAnalizRaporu',   // Çünkü bu yapı vw_CariEkstreDetay'ın IslemTarihi kolonuna bağımlı.
         'vw_FaturaDetayRaporu',
         'vw_StokListesi'
     ],
@@ -51,7 +51,6 @@ async function exportSchema() {
         // ====================================================
         // ÖN ADIM: DÜKKANDA HİÇ OLMAYAN YAPILAR İÇİN SAHTE (STUB) OLUŞTURMA
         // ====================================================
-        // Bu adım, ALTER komutunun dükkanda nesne hiç yokken patlamasını engeller.
         finalSqlScript += `-- ----------------------------------------------------\n`;
         finalSqlScript += `-- 🛡️ ÖN HAZIRLIK: EKSİK NESNELERİ GÜVENLİCE ILK DEFA OLUŞTURMA\n`;
         finalSqlScript += `-- ----------------------------------------------------\n\n`;
@@ -69,29 +68,39 @@ async function exportSchema() {
         });
         finalSqlScript += `\n`;
 
-        // ---- 1. ADIM: VIEW'LARI ÇEK (ASIL TANIMLAR) ----
+        // ---- 1. ADIM: VIEW'LARI ÇEK (SIRALAMA KORUMALI) ----
         if (BENIM_NESNELERIM.views.length > 0) {
             console.log('🔍 View yapıları çekiliyor...');
             const viewResult = await pool.request().query(`
-                SELECT sm.definition FROM sys.sql_modules sm
+                SELECT o.name, sm.definition FROM sys.sql_modules sm
                 JOIN sys.objects o ON sm.object_id = o.object_id
                 WHERE o.type = 'V' AND o.name IN (${viewListStr})
             `);
+            
             finalSqlScript += `-- ----------------------------------------------------\n`;
             finalSqlScript += `-- 📊 AŞAMA 1: VIEW GÜNCELLEMELERİ (ASIL GÖVDELER)\n`;
             finalSqlScript += `-- ----------------------------------------------------\n\n`;
             
+            // 🧠 ZEKİ DOKUNUŞ: SQL Server'dan gelen kayıtları, BENIM_NESNELERIM dizisindeki sıraya göre hizala!
+            const viewMap = {};
             viewResult.recordset.forEach(row => {
-                let definition = row.definition.replace(/CREATE\s+VIEW/i, 'ALTER VIEW');
-                finalSqlScript += `${definition.trim()}\nGO\n\n`;
+                viewMap[row.name] = row.definition;
+            });
+
+            BENIM_NESNELERIM.views.forEach(viewName => {
+                const rawDef = viewMap[viewName];
+                if (rawDef) {
+                    let definition = rawDef.replace(/CREATE\s+VIEW/i, 'ALTER VIEW');
+                    finalSqlScript += `${definition.trim()}\nGO\n\n`;
+                }
             });
         }
 
-        // ---- 2. ADIM: STORED PROCEDURE'LERİ ÇEK (ASIL TANIMLAR) ----
+        // ---- 2. ADIM: STORED PROCEDURE'LERİ ÇEK ----
         if (BENIM_NESNELERIM.procedures.length > 0) {
             console.log('🔍 Stored Procedure yapıları çekiliyor...');
             const spResult = await pool.request().query(`
-                SELECT sm.definition FROM sys.sql_modules sm
+                SELECT o.name, sm.definition FROM sys.sql_modules sm
                 JOIN sys.objects o ON sm.object_id = o.object_id
                 WHERE o.type = 'P' AND o.name IN (${spListStr})
             `);
@@ -99,10 +108,18 @@ async function exportSchema() {
             finalSqlScript += `-- ⚡ AŞAMA 2: STORED PROCEDURE GÜNCELLEMELERİ (ASIL GÖVDELER)\n`;
             finalSqlScript += `-- ----------------------------------------------------\n\n`;
 
+            const spMap = {};
             spResult.recordset.forEach(row => {
-                let definition = row.definition.replace(/CREATE\s+PROCEDURE/i, 'ALTER PROCEDURE');
-                definition = definition.replace(/CREATE\s+PROC/i, 'ALTER PROCEDURE');
-                finalSqlScript += `${definition.trim()}\nGO\n\n`;
+                spMap[row.name] = row.definition;
+            });
+
+            BENIM_NESNELERIM.procedures.forEach(spName => {
+                const rawDef = spMap[spName];
+                if (rawDef) {
+                    let definition = rawDef.replace(/CREATE\s+PROCEDURE/i, 'ALTER PROCEDURE');
+                    definition = definition.replace(/CREATE\s+PROC/i, 'ALTER PROCEDURE');
+                    finalSqlScript += `${definition.trim()}\nGO\n\n`;
+                }
             });
         }
 
@@ -139,16 +156,11 @@ async function exportSchema() {
                 const fullTableName = `[${row.SchemaName}].[${row.TableName}]`;
                 
                 finalSqlScript += `-- ⚡ Index: ${row.IndexName} (Tablo: ${fullTableName})\n`;
-                
-                // Dükkanda tablo mevcut mu kontrol et (Mevcut değilse index oluştururken patlamasın)
                 finalSqlScript += `IF EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID('${fullTableName}') AND type in (N'U'))\n`;
                 finalSqlScript += `BEGIN\n`;
-                
-                // Varsa önce sil
                 finalSqlScript += `    IF EXISTS (SELECT * FROM sys.indexes WHERE name = '${row.IndexName}' AND object_id = OBJECT_ID('${fullTableName}'))\n`;
-                finalSqlScript += `    BEGIN\n        DROP INDEX [${row.IndexName}] ON ${fullTableName};\n    END;\n`;
+                finalSqlScript += `    BEGIN\n         DROP INDEX [${row.IndexName}] ON ${fullTableName};\n    END;\n`;
                 
-                // İndeksi kur
                 if (row.IncludeColumns) {
                     finalSqlScript += `    CREATE NONCLUSTERED INDEX [${row.IndexName}] ON ${fullTableName} (${row.KeyColumns}) INCLUDE (${row.IncludeColumns});\n`;
                 } else {
