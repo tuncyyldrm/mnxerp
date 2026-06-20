@@ -79,18 +79,25 @@ LEFT JOIN [dbo].[banka] b ON i.bankaid = b.id
 LEFT JOIN [dbo].[islemkaydı_ack] ack ON ik.ikid = ack.IK_ID AND (ack.SR = 0 OR ack.SR IS NULL)
 WHERE i.islemid IS NOT NULL AND (ik.islemtipi IN ('VRM', 'VRMC', 'VİRMAN') OR ISNULL(i.alısmiktar, 0) <> 0 OR ISNULL(i.satısmiktar, 0) <> 0 OR ISNULL(i.alıstutarı, 0) <> 0 OR ISNULL(i.satıstutarı, 0) <> 0 OR ISNULL(i.net, 0) <> 0);`,
 
-        vw_StokListesi: `CREATE VIEW [dbo].[vw_StokListesi] AS
+        vw_StokListesi: `ALTER VIEW [dbo].[vw_StokListesi]
+AS
 SELECT 
-    s.urunkodu, s.urun, s.urunalt, s.ureticifirma, s.grubu, s.kategori, s.tipi, s.Raf, s.fiyatı, 
+    s.urunkodu, s.urun, s.urunalt, s.ureticifirma, 
+    s.grubu, s.kateGOri, s.tipi, s.Raf, s.fiyatı, 
     s.OEM, s.STK_FULL, s.OEM_0, s.OEM_1, s.OEM_2, s.OEM_3, s.OEM_4,
-    NULL AS OEM_5, NULL AS OEM_6, NULL AS OEM_7, NULL AS OEM_8, NULL AS OEM_9,
+    NULL AS OEM_5, 
+    NULL AS OEM_6, 
+    NULL AS OEM_7, 
+    NULL AS OEM_8, 
+    NULL AS OEM_9,
     ISNULL(bakiye.ToplamBakiye, 0) AS MevcutBakiye
 FROM [dbo].[stok] s WITH (NOLOCK)
 OUTER APPLY (
     SELECT SUM(ISNULL(i.alısmiktar, 0) - ISNULL(i.satısmiktar, 0)) AS ToplamBakiye
     FROM [dbo].[islem] i WITH (NOLOCK)
     WHERE i.detay_kodu = s.urunkodu
-) AS bakiye;`
+) AS bakiye;
+GO`
     },
     procedures: {
         sp_StokDetayGetir: `CREATE PROCEDURE dbo.sp_StokDetayGetir @UrunKodu NVARCHAR(100) AS BEGIN SET NOCOUNT ON; SELECT s.urunkodu, s.urun, s.urunalt, s.ureticifirma, s.grubu, s.kategori, s.tipi, s.Raf, s.fiyatı, s.OEM, s.STK_FULL, s.OEM_0, s.OEM_1, s.OEM_2, s.OEM_3, s.OEM_4, ISNULL(b.ToplamBakiye, 0) AS MevcutBakiye FROM dbo.stok s WITH (NOLOCK) OUTER APPLY (SELECT SUM(i.alısmiktar - i.satısmiktar) AS ToplamBakiye FROM dbo.islem i WITH (NOLOCK) WHERE i.detay_kodu = s.urunkodu) b WHERE s.urunkodu = @UrunKodu; END`,
