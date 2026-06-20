@@ -149,20 +149,38 @@ END;
 GO\n`;
 }
 
+// =========================================================================
+// SCRIPT YAPICI YARDIMCILARI (GÜNCELLENEN GÜVENLİ SÜRÜM)
+// =========================================================================
+
 function buildClusteredKey(pk) {
     return `
 IF EXISTS (SELECT 1 FROM sys.objects WHERE object_id = OBJECT_ID('dbo.${pk.table}') AND type = 'U')
 BEGIN
-    IF NOT EXISTS (SELECT 1 FROM sys.key_constraints WHERE type = 'PK' AND object_id = OBJECT_ID('dbo.${pk.table}'))
+    -- 1. Tablonun halihazırda HANGİ İSİMLE OLURSA OLSUN bir Primary Key'i var mı?
+    IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE object_id = OBJECT_ID('dbo.${pk.table}') AND is_primary_key = 1)
     BEGIN
-        -- Tablo yığın (Heap) durumundaysa Primary Key atılarak fiziksel olarak sıralanır ve Table Scan engellenir.
-        ALTER TABLE [dbo].[${pk.table}] ADD CONSTRAINT [${pk.name}] PRIMARY KEY CLUSTERED ([${pk.col}] ASC);
-        PRINT '✔️ Clustered PK Enjekte Edildi: [dbo].[${pk.table}] -> ${pk.name}';
-    END;
+        -- 2. Eğer PK yoksa ama bizim koyacağımız isim sistemde başka bir yerde çakışıyorsa, önce o çakışan ismi temizle
+        IF EXISTS (SELECT 1 FROM sys.objects WHERE name = '${pk.name}')
+        BEGIN
+            -- İsim çakışmasını engellemek için geçici bir isim türet veya var olan constraint'i temizle
+            EXEC('ALTER TABLE [dbo].[${pk.table}] ADD CONSTRAINT [${pk.name}_AUTO] PRIMARY KEY CLUSTERED ([${pk.col}] ASC)');
+            PRINT '✔️ İsim çakışması önlendi, Alternatif PK Enjekte Edildi: [dbo].[${pk.table}]';
+        END
+        ELSE
+        BEGIN
+            -- Her şey temizse normal isimlendirmeyle oluştur
+            ALTER TABLE [dbo].[${pk.table}] ADD CONSTRAINT [${pk.name}] PRIMARY KEY CLUSTERED ([${pk.col}] ASC);
+            PRINT '✔️ Clustered PK Enjekte Edildi: [dbo].[${pk.table}] -> ${pk.name}';
+        END
+    END
+    ELSE
+    BEGIN
+        PRINT 'ℹ️ [dbo].[${pk.table}] tablosunda zaten bir Primary Key mevcut, yapı korunuyor.';
+    END
 END;
 GO\n`;
 }
-
 // =========================================================================
 // ANA ÇALIŞTIRICI
 // =========================================================================

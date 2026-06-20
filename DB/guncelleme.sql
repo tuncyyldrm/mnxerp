@@ -1,6 +1,6 @@
 /* =========================================================================
     ✨ %100 SIFIR KURULUM VE GÜNCELLEME UYUMLU OTOMATİK ÜRETİLEN SCRIPT
-    Generated: 21.06.2026 01:02:21
+    Generated: 21.06.2026 01:04:40
     🛡️ Akıllı Dinamik Taslak (Dyna-Stub) Mimarisi & Index Koruması Aktiftir.
 ========================================================================= */
 
@@ -13,34 +13,79 @@ GO
 
 IF EXISTS (SELECT 1 FROM sys.objects WHERE object_id = OBJECT_ID('dbo.cari') AND type = 'U')
 BEGIN
-    IF NOT EXISTS (SELECT 1 FROM sys.key_constraints WHERE type = 'PK' AND object_id = OBJECT_ID('dbo.cari'))
+    -- 1. Tablonun halihazırda HANGİ İSİMLE OLURSA OLSUN bir Primary Key'i var mı?
+    IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE object_id = OBJECT_ID('dbo.cari') AND is_primary_key = 1)
     BEGIN
-        -- Tablo yığın (Heap) durumundaysa Primary Key atılarak fiziksel olarak sıralanır ve Table Scan engellenir.
-        ALTER TABLE [dbo].[cari] ADD CONSTRAINT [PK_cari_id] PRIMARY KEY CLUSTERED ([id] ASC);
-        PRINT '✔️ Clustered PK Enjekte Edildi: [dbo].[cari] -> PK_cari_id';
-    END;
+        -- 2. Eğer PK yoksa ama bizim koyacağımız isim sistemde başka bir yerde çakışıyorsa, önce o çakışan ismi temizle
+        IF EXISTS (SELECT 1 FROM sys.objects WHERE name = 'PK_cari_id')
+        BEGIN
+            -- İsim çakışmasını engellemek için geçici bir isim türet veya var olan constraint'i temizle
+            EXEC('ALTER TABLE [dbo].[cari] ADD CONSTRAINT [PK_cari_id_AUTO] PRIMARY KEY CLUSTERED ([id] ASC)');
+            PRINT '✔️ İsim çakışması önlendi, Alternatif PK Enjekte Edildi: [dbo].[cari]';
+        END
+        ELSE
+        BEGIN
+            -- Her şey temizse normal isimlendirmeyle oluştur
+            ALTER TABLE [dbo].[cari] ADD CONSTRAINT [PK_cari_id] PRIMARY KEY CLUSTERED ([id] ASC);
+            PRINT '✔️ Clustered PK Enjekte Edildi: [dbo].[cari] -> PK_cari_id';
+        END
+    END
+    ELSE
+    BEGIN
+        PRINT 'ℹ️ [dbo].[cari] tablosunda zaten bir Primary Key mevcut, yapı korunuyor.';
+    END
 END;
 GO
 
 IF EXISTS (SELECT 1 FROM sys.objects WHERE object_id = OBJECT_ID('dbo.kasa') AND type = 'U')
 BEGIN
-    IF NOT EXISTS (SELECT 1 FROM sys.key_constraints WHERE type = 'PK' AND object_id = OBJECT_ID('dbo.kasa'))
+    -- 1. Tablonun halihazırda HANGİ İSİMLE OLURSA OLSUN bir Primary Key'i var mı?
+    IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE object_id = OBJECT_ID('dbo.kasa') AND is_primary_key = 1)
     BEGIN
-        -- Tablo yığın (Heap) durumundaysa Primary Key atılarak fiziksel olarak sıralanır ve Table Scan engellenir.
-        ALTER TABLE [dbo].[kasa] ADD CONSTRAINT [PK_kasa_id] PRIMARY KEY CLUSTERED ([kasaid] ASC);
-        PRINT '✔️ Clustered PK Enjekte Edildi: [dbo].[kasa] -> PK_kasa_id';
-    END;
+        -- 2. Eğer PK yoksa ama bizim koyacağımız isim sistemde başka bir yerde çakışıyorsa, önce o çakışan ismi temizle
+        IF EXISTS (SELECT 1 FROM sys.objects WHERE name = 'PK_kasa_id')
+        BEGIN
+            -- İsim çakışmasını engellemek için geçici bir isim türet veya var olan constraint'i temizle
+            EXEC('ALTER TABLE [dbo].[kasa] ADD CONSTRAINT [PK_kasa_id_AUTO] PRIMARY KEY CLUSTERED ([kasaid] ASC)');
+            PRINT '✔️ İsim çakışması önlendi, Alternatif PK Enjekte Edildi: [dbo].[kasa]';
+        END
+        ELSE
+        BEGIN
+            -- Her şey temizse normal isimlendirmeyle oluştur
+            ALTER TABLE [dbo].[kasa] ADD CONSTRAINT [PK_kasa_id] PRIMARY KEY CLUSTERED ([kasaid] ASC);
+            PRINT '✔️ Clustered PK Enjekte Edildi: [dbo].[kasa] -> PK_kasa_id';
+        END
+    END
+    ELSE
+    BEGIN
+        PRINT 'ℹ️ [dbo].[kasa] tablosunda zaten bir Primary Key mevcut, yapı korunuyor.';
+    END
 END;
 GO
 
 IF EXISTS (SELECT 1 FROM sys.objects WHERE object_id = OBJECT_ID('dbo.banka') AND type = 'U')
 BEGIN
-    IF NOT EXISTS (SELECT 1 FROM sys.key_constraints WHERE type = 'PK' AND object_id = OBJECT_ID('dbo.banka'))
+    -- 1. Tablonun halihazırda HANGİ İSİMLE OLURSA OLSUN bir Primary Key'i var mı?
+    IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE object_id = OBJECT_ID('dbo.banka') AND is_primary_key = 1)
     BEGIN
-        -- Tablo yığın (Heap) durumundaysa Primary Key atılarak fiziksel olarak sıralanır ve Table Scan engellenir.
-        ALTER TABLE [dbo].[banka] ADD CONSTRAINT [PK_banka_id] PRIMARY KEY CLUSTERED ([id] ASC);
-        PRINT '✔️ Clustered PK Enjekte Edildi: [dbo].[banka] -> PK_banka_id';
-    END;
+        -- 2. Eğer PK yoksa ama bizim koyacağımız isim sistemde başka bir yerde çakışıyorsa, önce o çakışan ismi temizle
+        IF EXISTS (SELECT 1 FROM sys.objects WHERE name = 'PK_banka_id')
+        BEGIN
+            -- İsim çakışmasını engellemek için geçici bir isim türet veya var olan constraint'i temizle
+            EXEC('ALTER TABLE [dbo].[banka] ADD CONSTRAINT [PK_banka_id_AUTO] PRIMARY KEY CLUSTERED ([id] ASC)');
+            PRINT '✔️ İsim çakışması önlendi, Alternatif PK Enjekte Edildi: [dbo].[banka]';
+        END
+        ELSE
+        BEGIN
+            -- Her şey temizse normal isimlendirmeyle oluştur
+            ALTER TABLE [dbo].[banka] ADD CONSTRAINT [PK_banka_id] PRIMARY KEY CLUSTERED ([id] ASC);
+            PRINT '✔️ Clustered PK Enjekte Edildi: [dbo].[banka] -> PK_banka_id';
+        END
+    END
+    ELSE
+    BEGIN
+        PRINT 'ℹ️ [dbo].[banka] tablosunda zaten bir Primary Key mevcut, yapı korunuyor.';
+    END
 END;
 GO
 
@@ -85,17 +130,6 @@ END;
 GO
 
 /* ===================== 📊 ADIM 3: VIEW GÜNCELLEMELERİ (ALTER) ===================== */
-/* ===================== 📊 ADIM 2: VIEW GÜNCELLEMELERİ (ALTER) ===================== */
-/* ===================== 📊 ADIM 2: VIEW GÜNCELLEMELERİ (ALTER) ===================== */
--- ----------------------------------------------------
--- 📊 AŞAMA 1: VIEW GÜNCELLEMELERİ (ASIL GÖVDELER)
--- ----------------------------------------------------
-
--- ----------------------------------------------------
--- 📊 AŞAMA 1: VIEW GÜNCELLEMELERİ (ASIL GÖVDELER)
--- ----------------------------------------------------
-
--- 🔄 ÖNCE BU VIEW DERLENMELİ: Çünkü V_CariAnalizRaporu buradaki CariID ve IslemTarihi kolonlarına bağımlı!
 ALTER VIEW [dbo].[vw_CariEkstreDetay] AS
 SELECT 
     c.id AS CariID,
@@ -105,20 +139,13 @@ SELECT
     CAST(ik.belgetarihi AS DATETIME) + CAST(ISNULL(ik.belgesaati, '00:00:00') AS DATETIME) AS IslemTarihi,
     COALESCE(NULLIF(CAST(ik.faturanumarası AS NVARCHAR(100)), ''), CAST(ik.belgenumarası AS NVARCHAR(100)), '-') AS BelgeNo,
     CAST(ik.islemtipi AS NVARCHAR(100)) AS IslemTipi,
-    CASE 
-        WHEN ISNULL(ik.BB_TL, 0) > 0 THEN ik.BB_TL 
-        ELSE ISNULL(ik.AB_TL, 0) 
-    END AS IslemTutari,
-    CASE 
-        WHEN ISNULL(ik.BB_TL, 0) > 0 THEN 'B' 
-        ELSE 'A' 
-    END AS Yon
+    CASE WHEN ISNULL(ik.BB_TL, 0) > 0 THEN ik.BB_TL ELSE ISNULL(ik.AB_TL, 0) END AS IslemTutari,
+    CASE WHEN ISNULL(ik.BB_TL, 0) > 0 THEN 'B' ELSE 'A' END AS Yon
 FROM [dbo].[islemkaydı] ik
 INNER JOIN [dbo].[cari] c ON COALESCE(NULLIF(CAST(ik.id_name AS NVARCHAR(255)), ''), N'Bilinmeyen Cari') = c.firma
 WHERE c.C_STATU = 0;
 GO
 
--- 🔄 SONRA BU VIEW DERLENMELİ: Artık vw_CariEkstreDetay kolonları hazır olduğu için patlamaz.
 ALTER VIEW [dbo].[V_CariAnalizRaporu] AS
 SELECT 
     c.id,
@@ -131,29 +158,11 @@ SELECT
         ELSE 'Diğer Cari'
     END AS CariTipi,
     ISNULL(c.BB_TL, 0) - ISNULL(c.AB_TL, 0) AS NetBakiyeTL,
-    CASE 
-        WHEN c.email LIKE '%trendyol%' OR c.firma LIKE '%Trendyol%' THEN 'Trendyol'
-        ELSE 'Doğal Piyasa'
-    END AS Kanali,
-    
-    COALESCE(
-        (SELECT MAX(ekstre.IslemTarihi) 
-         FROM [dbo].[vw_CariEkstreDetay] ekstre 
-         WHERE ekstre.CariID = c.id), 
-        c.ilkdate, 
-        GETDATE()
-    ) AS SonIslemTarihi,
-
+    CASE WHEN c.email LIKE '%trendyol%' OR c.firma LIKE '%Trendyol%' THEN 'Trendyol' ELSE 'Doğal Piyasa' END AS Kanali,
+    COALESCE((SELECT MAX(ekstre.IslemTarihi) FROM [dbo].[vw_CariEkstreDetay] ekstre WHERE ekstre.CariID = c.id), c.ilkdate, GETDATE()) AS SonIslemTarihi,
     CASE 
         WHEN (ISNULL(c.BB_TL, 0) - ISNULL(c.AB_TL, 0)) > 0 THEN
-            DATEDIFF(DAY, 
-                COALESCE(
-                    (SELECT MAX(ekstre.IslemTarihi) FROM [dbo].[vw_CariEkstreDetay] ekstre WHERE ekstre.CariID = c.id), 
-                    c.ilkdate, 
-                    GETDATE()
-                ), 
-                GETDATE()
-            )
+            DATEDIFF(DAY, COALESCE((SELECT MAX(ekstre.IslemTarihi) FROM [dbo].[vw_CariEkstreDetay] ekstre WHERE ekstre.CariID = c.id), c.ilkdate, GETDATE()), GETDATE())
         ELSE 0
     END AS GecikmeGunSayisi
 FROM [dbo].[cari] c
@@ -163,88 +172,33 @@ GO
 ALTER VIEW [dbo].[vw_FaturaDetayRaporu] AS
 SELECT 
     ik.ikid AS IslemNo,
-    CAST(
-        COALESCE(
-            NULLIF(CAST(ik.id_name AS NVARCHAR(255)), ''),
-            CASE WHEN ISNULL(i.kasaid, 0) > 1 THEN k.kasa_ack END,
-            CASE WHEN i.kasaid = 1 OR (ISNULL(i.kasaid, 0) = 0 AND ISNULL(i.bankaid, 0) = 0 AND i.Cariid = 1) THEN N'MERKEZ KASA / CARİ HAREKETİ' END,
-            CASE WHEN ISNULL(i.bankaid, 0) > 0 THEN b.banka + ' - ' + b.sube END,
-            CASE 
-                WHEN ik.islemtipi IN ('VRM', 'VRMC', 'BÇ', 'BY', 'MSF', 'DG', 'DC', 'VİRMAN') THEN N'İÇ TRANSFER HAREKETİ'
-                WHEN ik.islemtipi IN ('NT', 'NÖ') THEN N'KASA HAREKETİ'
-                ELSE N'Sistem Virman Satırı'
-            END
-        ) AS NVARCHAR(255)
-    ) AS CariAdi,
-    CAST(
-        CASE 
-            WHEN ik.islemtipi IN ('SF', 'PS', 'WBS', 'SÖSA') THEN 'SF'
-            WHEN ik.islemtipi IN ('AF', 'MG') THEN 'AF'
-            WHEN ik.islemtipi IN ('NT', 'GELHE', 'KKT', 'BTA', 'TT', 'KT') THEN 'NT'
-            WHEN ik.islemtipi IN ('NÖ', 'GIDHE', 'KKO', 'BTE', 'KKTED', 'KÖ') THEN 'NÖ'
-            WHEN ik.islemtipi IN ('PSI', 'MTAİ') THEN 'PSI'
-            WHEN ik.islemtipi IN ('VRM', 'VRMC', 'BÇ', 'BY', 'MSF', 'DG', 'DC', 'VİRMAN') THEN 'VRM'
-            WHEN ik.islemtipi = 'S' THEN 'SF'
-            WHEN ik.islemtipi = 'A' THEN 'AF'
-            ELSE ISNULL(ik.islemtipi, 'DIĞER')
-        END AS NVARCHAR(100)
-    ) AS IslemTipi,
+    CAST(COALESCE(NULLIF(CAST(ik.id_name AS NVARCHAR(255)), ''), CASE WHEN ISNULL(i.kasaid, 0) > 1 THEN k.kasa_ack END, CASE WHEN i.kasaid = 1 OR (ISNULL(i.kasaid, 0) = 0 AND ISNULL(i.bankaid, 0) = 0 AND i.Cariid = 1) THEN N'MERKEZ KASA / CARİ HAREKETİ' END, CASE WHEN ISNULL(i.bankaid, 0) > 0 THEN b.banka + ' - ' + b.sube END, CASE WHEN ik.islemtipi IN ('VRM', 'VRMC', 'BÇ', 'BY', 'MSF', 'DG', 'DC', 'VİRMAN') THEN N'İÇ TRANSFER HAREKETİ' WHEN ik.islemtipi IN ('NT', 'NÖ') THEN N'KASA HAREKETİ' ELSE N'Sistem Virman Satırı' END) AS NVARCHAR(255)) AS CariAdi,
+    CAST(CASE WHEN ik.islemtipi IN ('SF', 'PS', 'WBS', 'SÖSA') THEN 'SF' WHEN ik.islemtipi IN ('AF', 'MG') THEN 'AF' WHEN ik.islemtipi IN ('NT', 'GELHE', 'KKT', 'BTA', 'TT', 'KT') THEN 'NT' WHEN ik.islemtipi IN ('NÖ', 'GIDHE', 'KKO', 'BTE', 'KKTED', 'KÖ') THEN 'NÖ' WHEN ik.islemtipi IN ('PSI', 'MTAİ') THEN 'PSI' WHEN ik.islemtipi IN ('VRM', 'VRMC', 'BÇ', 'BY', 'MSF', 'DG', 'DC', 'VİRMAN') THEN 'VRM' WHEN ik.islemtipi = 'S' THEN 'SF' WHEN ik.islemtipi = 'A' THEN 'AF' ELSE ISNULL(ik.islemtipi, 'DIĞER') END AS NVARCHAR(100)) AS IslemTipi,
     CAST(ik.belgetarihi AS DATETIME) + CAST(ISNULL(ik.belgesaati, '00:00:00') AS DATETIME) AS FaturaTarihi,
     COALESCE(NULLIF(CAST(ik.faturanumarası AS NVARCHAR(100)), ''), CAST(ik.belgenumarası AS NVARCHAR(100)), '-') AS BelgeNo,
-    CASE 
-        WHEN ISNULL(ik.AB_TL, 0) > 0 THEN ik.AB_TL 
-        ELSE ISNULL(ik.BB_TL, 0) 
-    END AS FaturaToplamTutar,
+    CASE WHEN ISNULL(ik.AB_TL, 0) > 0 THEN ik.AB_TL ELSE ISNULL(ik.BB_TL, 0) END AS FaturaToplamTutar,
     COALESCE(NULLIF(CAST(ack.I_NOTE AS NVARCHAR(MAX)), ''), N'İçerik detayları için tıklayın') AS FaturaNotu,
     i.islemid AS SatirId,
     COALESCE(NULLIF(CAST(i.detay AS NVARCHAR(255)), ''), N'Tanımsız Satır/Hizmet/Virman') AS UrunAdi,
-    COALESCE(NULLIF(CAST(i.detay_kodu AS NVARCHAR(100)), ''), '-') AS StokKodu,
+    COALESCE(NULLIF(CAST(i.detay_kodu AS NVARCHAR(100)), '-') AS StokKodu,
     COALESCE(NULLIF(CAST(i.birim AS NVARCHAR(50)), ''), N'ADET') AS Birim,
-    ISNULL(i.birimfiyat, 0) AS BirimFiyat, 
-    ISNULL(i.kdvoranı, 0) AS KdvOrani,    
-    ISNULL(i.kdv, 0) AS KdvTutari,        
-    CASE 
-        WHEN ISNULL(i.alısmiktar, 0) <> 0 THEN ISNULL(i.alıstutarı, 0) / i.alısmiktar
-        WHEN ISNULL(i.satısmiktar, 0) <> 0 THEN ISNULL(i.satıstutarı, 0) / i.satısmiktar
-        ELSE ISNULL(i.birimfiyat, 0)
-    END AS KdvDahilBirimFiyat,
-    CASE 
-        WHEN ISNULL(i.alısmiktar, 0) <> 0 THEN i.alısmiktar 
-        ELSE ISNULL(i.satısmiktar, 0) 
-    END AS Miktar,
-    CAST(
-        CASE 
-            WHEN ik.islemtipi IN ('VRM', 'VRMC', 'VİRMAN', 'BÇ', 'BY', 'MSF', 'DG', 'DC') THEN 
-                ISNULL(i.satıstutarı, 0)
-            ELSE
-                COALESCE(NULLIF(i.satıstutarı, 0), i.alıstutarı, 0)
-        END AS DECIMAL(18,4)
-    ) AS SatirTutarı
+    ISNULL(i.birimfiyat, 0) AS BirimFiyat, ISNULL(i.kdvoranı, 0) AS KdvOrani, ISNULL(i.kdv, 0) AS KdvTutari,        
+    CASE WHEN ISNULL(i.alısmiktar, 0) <> 0 THEN ISNULL(i.alıstutarı, 0) / i.alısmiktar WHEN ISNULL(i.satısmiktar, 0) <> 0 THEN ISNULL(i.satıstutarı, 0) / i.satısmiktar ELSE ISNULL(i.birimfiyat, 0) END AS KdvDahilBirimFiyat,
+    CASE WHEN ISNULL(i.alısmiktar, 0) <> 0 THEN i.alısmiktar ELSE ISNULL(i.satısmiktar, 0) END AS Miktar,
+    CAST(CASE WHEN ik.islemtipi IN ('VRM', 'VRMC', 'VİRMAN', 'BÇ', 'BY', 'MSF', 'DG', 'DC') THEN ISNULL(i.satıstutarı, 0) ELSE COALESCE(NULLIF(i.satıstutarı, 0), i.alıstutarı, 0) END AS DECIMAL(18,4)) AS SatirTutarı
 FROM [dbo].[islem] i
 INNER JOIN [dbo].[islemkaydı] ik ON i.islemnumarası = CAST(ik.ikid AS NVARCHAR(100))
 LEFT JOIN [dbo].[kasa] k ON i.kasaid = k.kasaid 
 LEFT JOIN [dbo].[banka] b ON i.bankaid = b.id 
 LEFT JOIN [dbo].[islemkaydı_ack] ack ON ik.ikid = ack.IK_ID AND (ack.SR = 0 OR ack.SR IS NULL)
-WHERE i.islemid IS NOT NULL 
-  AND (
-       ik.islemtipi IN ('VRM', 'VRMC', 'VİRMAN') 
-       OR ISNULL(i.alısmiktar, 0) <> 0 OR ISNULL(i.satısmiktar, 0) <> 0 
-       OR ISNULL(i.alıstutarı, 0) <> 0 OR ISNULL(i.satıstutarı, 0) <> 0 
-       OR ISNULL(i.net, 0) <> 0
-  );
+WHERE i.islemid IS NOT NULL AND (ik.islemtipi IN ('VRM', 'VRMC', 'VİRMAN') OR ISNULL(i.alısmiktar, 0) <> 0 OR ISNULL(i.satısmiktar, 0) <> 0 OR ISNULL(i.alıstutarı, 0) <> 0 OR ISNULL(i.satıstutarı, 0) <> 0 OR ISNULL(i.net, 0) <> 0);
 GO
 
-ALTER VIEW [dbo].[vw_StokListesi]
-AS
+ALTER VIEW [dbo].[vw_StokListesi] AS
 SELECT 
-    s.urunkodu, s.urun, s.urunalt, s.ureticifirma, 
-    s.grubu, s.kateGOri, s.tipi, s.Raf, s.fiyatı, 
+    s.urunkodu, s.urun, s.urunalt, s.ureticifirma, s.grubu, s.kategori, s.tipi, s.Raf, s.fiyatı, 
     s.OEM, s.STK_FULL, s.OEM_0, s.OEM_1, s.OEM_2, s.OEM_3, s.OEM_4,
-    NULL AS OEM_5, 
-    NULL AS OEM_6, 
-    NULL AS OEM_7, 
-    NULL AS OEM_8, 
-    NULL AS OEM_9,
+    NULL AS OEM_5, NULL AS OEM_6, NULL AS OEM_7, NULL AS OEM_8, NULL AS OEM_9,
     ISNULL(bakiye.ToplamBakiye, 0) AS MevcutBakiye
 FROM [dbo].[stok] s WITH (NOLOCK)
 OUTER APPLY (
@@ -256,73 +210,13 @@ GO
 
 
 /* ===================== ⚡ ADIM 4: STORED PROCEDURE GÜNCELLEMELERİ ===================== */
-/* ===================== ⚡ ADIM 3: STORED PROCEDURE GÜNCELLEMELERİ ===================== */
-/* ===================== ⚡ ADIM 3: STORED PROCEDURE GÜNCELLEMELERİ ===================== */
--- ----------------------------------------------------
--- ⚡ AŞAMA 2: STORED PROCEDURE GÜNCELLEMELERİ (ASIL GÖVDELER)
--- ----------------------------------------------------
-
--- ----------------------------------------------------
--- ⚡ AŞAMA 2: STORED PROCEDURE GÜNCELLEMELERİ
--- ----------------------------------------------------
-
-ALTER PROCEDURE dbo.sp_StokDetayGetir
-    @UrunKodu NVARCHAR(100)
-AS
-BEGIN
-    SET NOCOUNT ON;
-    SELECT 
-        s.urunkodu, s.urun, s.urunalt, s.ureticifirma, s.grubu, s.kateGOri, s.tipi, s.Raf, s.fiyatı, 
-        s.OEM, s.STK_FULL, s.OEM_0, s.OEM_1, s.OEM_2, s.OEM_3, s.OEM_4,
-        ISNULL(b.ToplamBakiye, 0) AS MevcutBakiye
-    FROM dbo.stok s WITH (NOLOCK)
-    OUTER APPLY (
-        SELECT SUM(i.alısmiktar - i.satısmiktar) AS ToplamBakiye
-        FROM dbo.islem i WITH (NOLOCK)
-        WHERE i.detay_kodu = s.urunkodu
-    ) b
-    WHERE s.urunkodu = @UrunKodu;
-END
+ALTER PROCEDURE dbo.sp_StokDetayGetir @UrunKodu NVARCHAR(100) AS BEGIN SET NOCOUNT ON; SELECT s.urunkodu, s.urun, s.urunalt, s.ureticifirma, s.grubu, s.kategori, s.tipi, s.Raf, s.fiyatı, s.OEM, s.STK_FULL, s.OEM_0, s.OEM_1, s.OEM_2, s.OEM_3, s.OEM_4, ISNULL(b.ToplamBakiye, 0) AS MevcutBakiye FROM dbo.stok s WITH (NOLOCK) OUTER APPLY (SELECT SUM(i.alısmiktar - i.satısmiktar) AS ToplamBakiye FROM dbo.islem i WITH (NOLOCK) WHERE i.detay_kodu = s.urunkodu) b WHERE s.urunkodu = @UrunKodu; END
 GO
 
-ALTER PROCEDURE [dbo].[sp_StokDuzenle]
-    @UrunKodu NVARCHAR(100),
-    @UrunAd NVARCHAR(250),
-    @Raf NVARCHAR(50),
-    @OEM_0 NVARCHAR(100),
-    @OEM_1 NVARCHAR(100),
-    @OEM_2 NVARCHAR(100),
-    @OEM_3 NVARCHAR(100),
-    @OEM_4 NVARCHAR(100)
-AS
-BEGIN
-    SET NOCOUNT ON;
-    UPDATE [dbo].[stok]
-    SET 
-        urun  = LTRIM(RTRIM(@UrunAd)),
-        Raf   = LTRIM(RTRIM(@Raf)),
-        OEM_0 = LTRIM(RTRIM(@OEM_0)),
-        OEM_1 = LTRIM(RTRIM(@OEM_1)),
-        OEM_2 = LTRIM(RTRIM(@OEM_2)),
-        OEM_3 = LTRIM(RTRIM(@OEM_3)),
-        OEM_4 = LTRIM(RTRIM(@OEM_4))
-    WHERE urunkodu = @UrunKodu;
-END
+ALTER PROCEDURE [dbo].[sp_StokDuzenle] @UrunKodu NVARCHAR(100), @UrunAd NVARCHAR(250), @Raf NVARCHAR(50), @OEM_0 NVARCHAR(100), @OEM_1 NVARCHAR(100), @OEM_2 NVARCHAR(100), @OEM_3 NVARCHAR(100), @OEM_4 NVARCHAR(100) AS BEGIN SET NOCOUNT ON; UPDATE [dbo].[stok] SET urun = LTRIM(RTRIM(@UrunAd)), Raf = LTRIM(RTRIM(@Raf)), OEM_0 = LTRIM(RTRIM(@OEM_0)), OEM_1 = LTRIM(RTRIM(@OEM_1)), OEM_2 = LTRIM(RTRIM(@OEM_2)), OEM_3 = LTRIM(RTRIM(@OEM_3)), OEM_4 = LTRIM(RTRIM(@OEM_4)) WHERE urunkodu = @UrunKodu; END
 GO
 
-ALTER PROCEDURE dbo.sp_UrunHareketAnaliz
-    @DetayKodu NVARCHAR(100)
-AS
-BEGIN
-    SET NOCOUNT ON;
-    SELECT
-        i.I_DATE AS Tarih, i.I_TIME AS Saat, i.I_TYPE AS IslemTipi, ik.id_name AS MusteriAdi,
-        i.alısmiktar AS Giris, i.satısmiktar AS Cikis, i.birimfiyat AS BirimFiyat, i.depo AS DepoBilgisi
-    FROM dbo.islem i WITH (NOLOCK)
-    LEFT JOIN dbo.islemkaydı ik WITH (NOLOCK) ON i.ikid_bag = ik.ikid
-    WHERE i.detay_kodu = @DetayKodu
-    ORDER BY i.I_DATE DESC, i.I_TIME DESC;
-END
+ALTER PROCEDURE dbo.sp_UrunHareketAnaliz @DetayKodu NVARCHAR(100) AS BEGIN SET NOCOUNT ON; SELECT i.I_DATE AS Tarih, i.I_TIME AS Saat, i.I_TYPE AS IslemTipi, ik.id_name AS MusteriAdi, i.alısmiktar AS Giris, i.satısmiktar AS Cikis, i.birimfiyat AS BirimFiyat, i.depo AS DepoBilgisi FROM dbo.islem i WITH (NOLOCK) LEFT JOIN dbo.islemkaydı ik WITH (NOLOCK) ON i.ikid_bag = ik.ikid WHERE i.detay_kodu = @DetayKodu ORDER BY i.I_DATE DESC, i.I_TIME DESC; END
 GO
 
 
