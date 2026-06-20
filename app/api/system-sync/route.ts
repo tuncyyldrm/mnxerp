@@ -23,16 +23,17 @@ export async function GET(request: NextRequest) {
         await writer.write(encoder.encode(`data: ${data}\n\n`));
     };
 
+    // Arka plandaki asenkron süreci yöneten ana gövde
     (async () => {
+        let isDevMode = process.env.NODE_ENV === 'development';
+        let basariliSorguSayisi = 0;
+
         try {
             if (secretKey !== GUVENLIK_ANAHTARI) {
                 await sendProgress('error', 'Yetkisiz erişim denemesi! Güvenlik anahtarı geçersiz.', 0);
                 await writer.close();
                 return;
             }
-
-            // Hangi ortamda çalıştığımızı algılıyoruz (development / production)
-            const isDevMode = process.env.NODE_ENV === 'development';
 
             // ----------------------------------------------------
             // AŞAMA 1: GIT DOĞRULAMA & KOD ÇEKME
@@ -52,10 +53,8 @@ export async function GET(request: NextRequest) {
             // AŞAMA 2: NEXT.JS YENİDEN BUILD (DERLEME)
             // ----------------------------------------------------
             if (isDevMode) {
-                // Eğer kendi bilgisayarında 'npm run dev' modundaysan build adımını bypass et
                 await sendProgress('loading', 'ℹ️ Yerel test ortamı (Dev Modu) algılandı. Build (Derleme) aşaması es geçiliyor...', 75);
             } else {
-                // Sahada (Canlı üretim ortamında) build alıyoruz
                 await sendProgress('loading', '🛠️ Aşama 2/4: Yeni kodlar dükkan için optimize ediliyor (Build alınıyor). Bu işlem 30-40 sn sürebilir...', 50);
                 try {
                     await execPromise('npm run build', { cwd: process.cwd() });
@@ -68,24 +67,38 @@ export async function GET(request: NextRequest) {
             }
 
             // ----------------------------------------------------
-            // AŞAMA 3: SQL VERİTABANI GÜNCELLEMESİ
+            // AŞAMA 3: SQL VERİTABANI GÜNCELLEMESİ (OPTIMIZE EDILDI 🛡️)
             // ----------------------------------------------------
             await sendProgress('loading', '🗄️ Aşama 3/4: Veritabanı (guncelleme.sql) senkronize ediliyor...', 80);
             const sqlFilePath = path.join(process.cwd(), 'DB', 'guncelleme.sql');
-            let basariliSorguSayisi = 0;
 
             if (fs.existsSync(sqlFilePath)) {
                 const fullSqlScript = fs.readFileSync(sqlFilePath, 'utf8');
-                const sqlQueries = fullSqlScript.split(/^\s*GO\s*$/im).map(q => q.trim()).filter(Boolean);
+                
+                // Görünmez satır sonu (\r) karakterlerini temizle ve standartlaştır
+                const standardizedSql = fullSqlScript.replace(/\r\n/g, '\n');
+
+                // Sadece satır başında ve sonunda tek başına izole duran GO komutlarını yakala (Gövde içi GO kalıntılarını korur)
+                const sqlQueries = standardizedSql
+                    .split(/(?:^|\n)\s*GO\s*(?:\n|$)/i)
+                    .map(q => q.trim())
+                    .filter(Boolean);
 
                 if (sqlQueries.length > 0) {
                     const pool = await getDbConnection();
                     for (let i = 0; i < sqlQueries.length; i++) {
+                        let singleQuery = sqlQueries[i];
+                        
+                        // Eğer boşluklardan dolayı sadece "GO" kalmış bir blok varsa es geç
+                        if (singleQuery.toUpperCase() === 'GO') continue;
+
                         try {
-                            await pool.request().query(sqlQueries[i]);
+                            await pool.request().query(singleQuery);
                             basariliSorguSayisi++;
                         } catch (sqlStepError: any) {
-                            await sendProgress('error', `❌ SQL Hatası! [Sorgu: ${i + 1}] Detay: ${sqlStepError?.message}`, 85);
+                            // Hata durumunda dükkan panelinde nokta atışı tanı koyabilmek için sorgunun ilk 50 karakterini rapora ekliyoruz
+                            const previewText = singleQuery.substring(0, 50).replace(/\n/g, ' ');
+                            await sendProgress('error', `❌ SQL Hatası! [Blok: ${i + 1}] (${previewText}...) Detay: ${sqlStepError?.message}`, 85);
                             await writer.close();
                             return;
                         }
@@ -95,41 +108,46 @@ export async function GET(request: NextRequest) {
             await sendProgress('loading', `✅ SQL Senkronizasyonu tamamlandı. ${basariliSorguSayisi} SQL bloğu işlendi.`, 90);
 
             // ----------------------------------------------------
-            // AŞAMA 4: PM2 RESTART VEYA GÜVENLİ DURDURMA (EXIT 0)
+            // AŞAMA 4: GÜVENLİ KAPATMA VE HOT RESTART HAZIRLIĞI
             // ----------------------------------------------------
             await sendProgress('loading', '🚀 Aşama 4/4: Sistem servisleri güncelleniyor, yeni sürüm devreye alınıyor...', 95);
             
+            // Başarı mesajını gönderip stream akışını kapatıyoruz
             await sendProgress('success', `🎉 MNX ERP Başarıyla Güncellendi! Mod: ${isDevMode ? 'Geliştirme' : 'Üretim'}, ${basariliSorguSayisi} SQL bloğu işlendi.`, 100);
             await writer.close();
 
-            // 2 saniye sonra sistemi akıllıca hot-restart veya sonlandırma moduna alıyoruz
-            setTimeout(async () => {
-                try {
-                    const dynamicPm2Name = process.env.name;
-
-                    if (dynamicPm2Name) {
-                        console.log(`Dinamik PM2 ismi tespit edildi: ${dynamicPm2Name}. Yeniden başlatılıyor...`);
-                        await execPromise(`pm2 restart "${dynamicPm2Name}"`);
-                    } else {
-                        if (isDevMode) {
-                            // Kendi bilgisayarında dev modundaysan kapatma yapma ki terminalin düşmesin, testine devam et
-                            console.log("Yerel dev ortamı çalışıyor. Süreç sonlandırılmadı, kesintisiz devam edebilirsiniz.");
-                        } else {
-                            // Eğer PM2 yoksa ama canlı moddaysa süreci temizce kapat
-                            console.log("PM2 süreç adı bulunamadı. Değişikliklerin devreye girmesi için süreç güvenli şekilde sonlandırılıyor (Exit 0)...");
-                            process.exit(0);
-                        }
-                    }
-                } catch (restartError) {
-                    console.log("Yeniden başlatma işlemi esnasında hata oluştu, process.exit(0) uygulanıyor.");
-                    if (!isDevMode) process.exit(0);
-                }
-            }, 2000);
-
         } catch (globalError: any) {
-            await sendProgress('error', `❌ Kritik Hata! Detay: ${globalError?.message || globalError}`, 0);
-            await writer.close();
+            try {
+                await sendProgress('error', `❌ Kritik Hata! Detay: ${globalError?.message || globalError}`, 0);
+                await writer.close();
+            } catch (e) {}
+            return;
         }
+
+        // İstemcinin (Tarayıcının) text/event-stream verisini tam alabilmesi için 3 saniye pay bırakıyoruz.
+        setTimeout(async () => {
+            try {
+                if (isDevMode) {
+                    console.log("⚡ [MNX DEV]: Yerel dev ortamı çalışıyor. Süreç sonlandırılmadı, teste devam edebilirsiniz.");
+                    return;
+                }
+
+                const dynamicPm2Name = process.env.name || process.env.PM2_HOME;
+
+                if (dynamicPm2Name && dynamicPm2Name !== 'false') {
+                    console.log(`🔄 PM2 Ortamı Tespit Edildi (${process.env.name}). Servis yeniden başlatılıyor...`);
+                    // Sıfır kesinti (Zero-Downtime) için reload tetikliyoruz
+                    await execPromise(`pm2 reload "${process.env.name}"`);
+                } else {
+                    console.log("⚠️ PM2 süreç adı bulunamadı. Değişikliklerin devreye girmesi için süreç güvenli şekilde kapatılıyor (Exit 0)...");
+                    process.exit(0);
+                }
+            } catch (restartError) {
+                console.error("❌ Yeniden başlatma esnasında hata çıktı. Sert kapatma uygulanıyor (Exit 0).", restartError);
+                process.exit(0);
+            }
+        }, 3000);
+
     })();
 
     return new Response(responseStream.readable, {
