@@ -6,18 +6,23 @@ import { useSearchParams } from 'next/navigation';
 function SystemUpdateContent() {
   const searchParams = useSearchParams();
   const key = searchParams.get('key');
-  const [status, setStatus] = useState<'loading' | 'success' | 'error'>('loading');
+  
+  // Durumlar: 'idle' (başlamadı), 'loading' (güncelleniyor), 'success' (başarılı), 'error' (hata)
+  const [status, setStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
   const [progress, setProgress] = useState(0);
   const [logs, setLogs] = useState<string[]>([]);
 
-  useEffect(() => {
+  const sistemiGuncelle = () => {
     if (!key) {
       setStatus('error');
       setLogs(['Geçersiz istek: Güvenlik anahtarı (key) eksik!']);
       return;
     }
 
-    // Server-Sent Events (SSE) bağlantısını başlatıyoruz
+    // Güncellemeyi loading moduna çekip canlı akışı tetikliyoruz
+    setStatus('loading');
+    setLogs(['Güncelleme süreci kullanıcı onayı ile başlatıldı...']);
+
     const eventSource = new EventSource(`/api/system-sync?key=${key}`);
 
     eventSource.onmessage = (event) => {
@@ -30,7 +35,7 @@ function SystemUpdateContent() {
         setLogs((prevLogs) => [data.message, ...prevLogs]);
 
         if (data.status === 'success' || data.status === 'error') {
-          eventSource.close(); // İşlem bittiyse bağlantıyı kapat
+          eventSource.close();
         }
       } catch (err) {
         setStatus('error');
@@ -41,49 +46,65 @@ function SystemUpdateContent() {
 
     eventSource.onerror = () => {
       setStatus('error');
-      setLogs(['Sunucuyla canlı bağlantı koptu veya zaman aşımı oluştu. Terminalden komut kilitlenmiş olabilir.']);
+      setLogs(['Sunucuyla canlı bağlantı koptu veya zaman aşımı oluştu. PM2 süreci tetiklemiş olabilir.']);
       eventSource.close();
     };
-
-    return () => {
-      eventSource.close();
-    };
-  }, [key]);
+  };
 
   return (
     <div style={styles.container}>
       <div style={styles.card}>
         <h2 style={styles.title}>MNX ERP Sistem Otomasyonu</h2>
         
-        {/* İlerleme Çubuğu */}
-        <div style={styles.progressContainer}>
-          <div style={{ ...styles.progressBar, width: `${progress}%`, backgroundColor: status === 'error' ? '#c0392b' : (status === 'success' ? '#27ae60' : '#e67e22') }}></div>
-        </div>
-        <div style={styles.progressText}>İlerleme: %{progress}</div>
-
-        {/* Canlı Durum İkonları */}
-        <div style={styles.statusSection}>
-          {status === 'loading' && <div style={styles.spinner}></div>}
-          {status === 'success' && <div style={styles.iconSuccess}>✓ Sonuç: Başarılı</div>}
-          {status === 'error' && <div style={styles.iconError}>✕ Sonuç: Başarısız</div>}
-        </div>
-
-        {/* Canlı Log Ekranı */}
-        <div style={styles.logContainer}>
-          <div style={styles.logHeader}>Canlı İşlem Raporu:</div>
-          <div style={styles.logBox}>
-            {logs.map((log, index) => (
-              <div key={index} style={{ ...styles.logLine, color: index === 0 ? (status === 'error' ? '#ff7675' : '#ffeaa7') : '#b2bec3', fontWeight: index === 0 ? 'bold' : 'normal' }}>
-                {log}
-              </div>
-            ))}
+        {/* Durum 1: Başlatma Öncesi Onay Ekranı */}
+        {status === 'idle' && (
+          <div style={styles.idleContainer}>
+            <div style={styles.infoAlert}>
+              <strong>⚠️ Dikkat:</strong> Güncelleme işlemi dükkan bilgisayarında yerel derleme (Build) yapacağı için yaklaşık <strong>30-60 saniye</strong> sürebilir ve bu süreçte sistem kısa süreliğine çevrimdışı kalabilir.
+            </div>
+            <p style={styles.description}>
+              GitHub üzerindeki en son kararlı sürümü çekmek, dosya bütünlüğünü doğrulamak ve veritabanı şemasını senkronize etmek için aşağıdaki butona basın.
+            </p>
+            <button onClick={sistemiGuncelle} style={styles.startButton}>
+              🚀 Güncellemeyi Doğrula ve Başlat
+            </button>
           </div>
-        </div>
+        )}
 
-        {status === 'success' && (
-          <button onClick={() => window.location.href = '/'} style={styles.button}>
-            Ana Panele Git
-          </button>
+        {/* Durum 2, 3, 4: Süreç Başladıktan Sonraki Arayüz */}
+        {status !== 'idle' && (
+          <>
+            {/* İlerleme Çubuğu */}
+            <div style={styles.progressContainer}>
+              <div style={{ ...styles.progressBar, width: `${progress}%`, backgroundColor: status === 'error' ? '#c0392b' : (status === 'success' ? '#27ae60' : '#e67e22') }}></div>
+            </div>
+            <div style={styles.progressText}>İlerleme: %{progress}</div>
+
+            {/* Canlı Durum İkonları */}
+            <div style={styles.statusSection}>
+              {status === 'loading' && <div style={styles.spinner}></div>}
+              {status === 'success' && <div style={styles.iconSuccess}>✓ Sonuç: Başarılı</div>}
+              {status === 'error' && <div style={styles.iconError}>✕ Sonuç: Başarısız</div>}
+            </div>
+
+            {/* Canlı Log Ekranı */}
+            <div style={styles.logContainer}>
+              <div style={styles.logHeader}>Canlı İşlem Raporu:</div>
+              <div style={styles.logBox}>
+                {logs.map((log, index) => (
+                  <div key={index} style={{ ...styles.logLine, color: index === 0 ? (status === 'error' ? '#ff7675' : '#ffeaa7') : '#b2bec3', fontWeight: index === 0 ? 'bold' : 'normal' }}>
+                    {log}
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {status === 'success' && (
+              <button onClick={() => window.location.href = '/'} style={styles.button}>
+                Ana Panele Git
+              </button>
+            )}
+          </>
         )}
       </div>
     </div>
@@ -116,7 +137,32 @@ const styles = {
     width: '100%',
     textAlign: 'center' as const,
   },
-  title: { color: '#2c3e50', fontSize: '20px', marginBottom: '20px' },
+  title: { color: '#2c3e50', fontSize: '20px', marginBottom: '20px', fontWeight: 'bold' },
+  idleContainer: { textAlign: 'left' as const, marginTop: '10px' },
+  infoAlert: {
+    backgroundColor: '#fff3cd',
+    color: '#856404',
+    border: '1px solid #ffeeba',
+    padding: '15px',
+    borderRadius: '8px',
+    fontSize: '13px',
+    lineHeight: '1.5',
+    marginBottom: '15px'
+  },
+  description: { color: '#57606f', fontSize: '14px', lineHeight: '1.6', marginBottom: '25px' },
+  startButton: {
+    backgroundColor: '#2980b9',
+    color: '#fff',
+    border: 'none',
+    padding: '14px 20px',
+    borderRadius: '8px',
+    cursor: 'pointer',
+    fontSize: '15px',
+    fontWeight: 'bold',
+    width: '100%',
+    boxShadow: '0 4px 10px rgba(41, 128, 185, 0.3)',
+    transition: 'background-color 0.2s'
+  },
   progressContainer: {
     backgroundColor: '#e9ecef',
     borderRadius: '10px',

@@ -32,73 +32,92 @@ export async function GET(request: NextRequest) {
             }
 
             // ----------------------------------------------------
-            // AŞAMA 1: DOĞRULAMA VE GÜNCELLEME (FORCE RESET & PULL)
+            // AŞAMA 1: GIT DOĞRULAMA & KOD ÇEKME
             // ----------------------------------------------------
-            await sendProgress('loading', '⚙️ Aşama 1/3: Dosya bütünlüğü doğrulanıyor ve GitHub ile senkronize ediliyor...', 15);
-            
+            await sendProgress('loading', '💾 Aşama 1/4: GitHub üzerinden en son kodlar çekiliyor ve doğrulanıyor...', 15);
             try {
-                // Önce GitHub'daki güncel ağacı çekiyoruz
                 await execPromise('git fetch origin main', { cwd: process.cwd() });
-                
-                // Silinen veya değişen tüm dosyaları GitHub'daki orijinal haline zorla geri getiriyoruz!
-                const { stdout } = await execPromise('git reset --hard origin/main', { cwd: process.cwd() });
-                
-                await sendProgress('loading', `✅ Dosya Doğrulama Tamamlandı: Silinen/değişen dosyalar onarıldı. Orijinal sürüme eşitlendi.`, 40);
+                await execPromise('git reset --hard origin/main', { cwd: process.cwd() });
+                await sendProgress('loading', '✅ Kod çekme işlemi başarılı. Dosya bütünlüğü sağlandı.', 30);
             } catch (gitError: any) {
-                await sendProgress('error', `❌ Git Doğrulama Hatası! İnternet bağlantısını veya kimlik bilgilerini kontrol edin. Detay: ${gitError?.message || gitError}`, 40);
+                await sendProgress('error', `❌ Git Hatası! Detay: ${gitError?.message || gitError}`, 30);
                 await writer.close();
                 return;
             }
 
             // ----------------------------------------------------
-            // AŞAMA 2: SQL DOSYASI KONTROLÜ (Artık silindiyse bile yukarıda geri geldi!)
+            // AŞAMA 2: NEXT.JS YENİDEN BUILD (DERLEME)
             // ----------------------------------------------------
-            await sendProgress('loading', '⚙️ Aşama 2/3: Veritabanı güncelleme dosyası (guncelleme.sql) okunuyor...', 50);
+            await sendProgress('loading', '🛠️ Aşama 2/4: Yeni kodlar dükkan için optimize ediliyor (Build alınıyor). Bu işlem 30-40 sn sürebilir...', 50);
+            try {
+                // Projeyi üretim moduna göre yerelde derliyoruz
+                await execPromise('npm run build', { cwd: process.cwd() });
+                await sendProgress('loading', '✅ Proje başarıyla yeniden derlendi (Build tamam).', 75);
+            } catch (buildError: any) {
+                await sendProgress('error', `❌ Build (Derleme) Hatası! Kodda syntax hatası veya eksik paket olabilir. Detay: ${buildError?.message || buildError}`, 75);
+                await writer.close();
+                return;
+            }
+
+            // ----------------------------------------------------
+            // AŞAMA 3: SQL VERİTABANI GÜNCELLEMESİ
+            // ----------------------------------------------------
+            await sendProgress('loading', '🗄️ Aşama 3/4: Veritabanı (guncelleme.sql) senkronize ediliyor...', 80);
             const sqlFilePath = path.join(process.cwd(), 'DB', 'guncelleme.sql');
-            
-            if (!fs.existsSync(sqlFilePath)) {
-                await sendProgress('success', '🎉 Sistem Güncel! Onarılan dosyalarda `guncelleme.sql` bulunamadı. Kodlar başarıyla orijinal haline getirildi.', 100);
-                await writer.close();
-                return;
-            }
-
-            const fullSqlScript = fs.readFileSync(sqlFilePath, 'utf8');
-            const sqlQueries = fullSqlScript.split(/^\s*GO\s*$/im).map(q => q.trim()).filter(Boolean);
-
-            if (sqlQueries.length === 0) {
-                await sendProgress('success', '🎉 Sistem Güncel! SQL dosyası içeriği boş, kodlar başarıyla doğrulandı.', 100);
-                await writer.close();
-                return;
-            }
-
-            // ----------------------------------------------------
-            // AŞAMA 3: SQL SORGULARININ ÇALIŞTIRILMASI
-            // ----------------------------------------------------
-            await sendProgress('loading', `⚙️ Aşama 3/3: Veritabanı bağlantısı kuruluyor... Toplam ${sqlQueries.length} SQL bloğu işlenecek.`, 60);
-            const pool = await getDbConnection();
             let basariliSorguSayisi = 0;
 
-            for (let i = 0; i < sqlQueries.length; i++) {
-                const temizSorgu = sqlQueries[i];
-                const currentPercent = Math.round(60 + ((i + 1) / sqlQueries.length) * 35);
-                
-                await sendProgress('loading', `⚡ [${i + 1}/${sqlQueries.length}] SQL Bloğu çalıştırılıyor...`, currentPercent);
-                
-                try {
-                    await pool.request().query(temizSorgu);
-                    basariliSorguSayisi++;
-                } catch (sqlStepError: any) {
-                    await sendProgress('error', `❌ SQL Çalıştırma Hatası! [Sorgu Sırası: ${i + 1}] Detay: ${sqlStepError?.message}`, currentPercent);
-                    await writer.close();
-                    return;
+            if (fs.existsSync(sqlFilePath)) {
+                const fullSqlScript = fs.readFileSync(sqlFilePath, 'utf8');
+                const sqlQueries = fullSqlScript.split(/^\s*GO\s*$/im).map(q => q.trim()).filter(Boolean);
+
+                if (sqlQueries.length > 0) {
+                    const pool = await getDbConnection();
+                    for (let i = 0; i < sqlQueries.length; i++) {
+                        try {
+                            await pool.request().query(sqlQueries[i]);
+                            basariliSorguSayisi++;
+                        } catch (sqlStepError: any) {
+                            await sendProgress('error', `❌ SQL Hatası! [Sorgu: ${i + 1}] Detay: ${sqlStepError?.message}`, 85);
+                            await writer.close();
+                            return;
+                        }
+                    }
                 }
             }
+            await sendProgress('loading', `✅ SQL Senkronizasyonu tamamlandı. ${basariliSorguSayisi} SQL bloğu işlendi.`, 90);
 
-            await sendProgress('success', `🎉 Sistem Tamamen Onarıldı ve Güncellendi! Kod bütünlüğü sağlandı, silinen dosyalar getirildi ve ${basariliSorguSayisi} SQL bloğu işlendi.`, 100);
+            // ----------------------------------------------------
+            // AŞAMA 4: PM2 RESTART (DİNAMİK YENİDEN BAŞLATMA)
+            // ----------------------------------------------------
+            await sendProgress('loading', '🚀 Aşama 4/4: PM2 servisi güncelleniyor, yeni sürüm havada devreye alınıyor...', 95);
             
+            // Son başarılı mesajını gönderip bağlantıyı kapatıyoruz ki tarayıcı askıda kalmasın
+            await sendProgress('success', `🎉 MNX ERP Başarıyla Güncellendi! Kod bütünlüğü sağlandı, build alındı ve ${basariliSorguSayisi} SQL bloğu işlendi. Sistem aktif ediliyor...`, 100);
+            await writer.close();
+
+            // Tarayıcıya mesaj ulaştıktan 2 saniye sonra PM2 sürecini tetikliyoruz
+            setTimeout(async () => {
+                try {
+                    // PM2 ortam değişkenlerinden sürecin kendi adını dinamik olarak yakalıyoruz
+                    const dynamicPm2Name = process.env.name;
+
+                    if (dynamicPm2Name) {
+                        console.log(`Dinamik PM2 ismi tespit edildi: ${dynamicPm2Name}. Yeniden başlatılıyor...`);
+                        await execPromise(`pm2 restart "${dynamicPm2Name}"`);
+                    } else {
+                        // Eğer PM2 ismi çekilemezse en güvenli fallback doğrudan process'i sonlandırmaktır
+                        console.log("PM2 süreç adı ortam değişkenlerinden alınamadı. Standart çıkış yapılıyor...");
+                        process.exit(0);
+                    }
+                } catch (pm2Error) {
+                    // PM2 komut satırı hatası veya yetki durumunda süreci kapatarak PM2'yu tetikle
+                    console.log("PM2 restart komutu başarısız oldu, process.exit(0) uygulanıyor.");
+                    process.exit(0);
+                }
+            }, 2000);
+
         } catch (globalError: any) {
-            await sendProgress('error', `❌ Kritik Sistem Hatası! Detay: ${globalError?.message || globalError}`, 0);
-        } finally {
+            await sendProgress('error', `❌ Kritik Hata! Detay: ${globalError?.message || globalError}`, 0);
             await writer.close();
         }
     })();
