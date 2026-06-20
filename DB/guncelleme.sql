@@ -1,6 +1,6 @@
 /* =========================================================================
     ✨ %100 SIFIR KURULUM VE GÜNCELLEME UYUMLU OTOMATİK ÜRETİLEN SCRIPT
-    Generated: 21.06.2026 01:14:15
+    Generated: 21.06.2026 01:19:15
     🛡️ Akıllı Dinamik Taslak (Dyna-Stub) Mimarisi & Index Koruması Aktiftir.
 ========================================================================= */
 
@@ -120,9 +120,17 @@ END;
 GO
 
 /* ===================== 📊 ADIM 3: VIEW GÜNCELLEMELERİ (ALTER) ===================== */
-/* ===================== 📊 ADIM 3: VIEW GÜNCELLEMELERİ (ALTER) ===================== */
-/* ===================== 📊 ADIM 3: VIEW GÜNCELLEMELERİ (ALTER) ===================== */
-/* ===================== 📊 ADIM 3: VIEW GÜNCELLEMELERİ (ALTER) ===================== */
+/* ===================== 📊 ADIM 2: VIEW GÜNCELLEMELERİ (ALTER) ===================== */
+/* ===================== 📊 ADIM 2: VIEW GÜNCELLEMELERİ (ALTER) ===================== */
+-- ----------------------------------------------------
+-- 📊 AŞAMA 1: VIEW GÜNCELLEMELERİ (ASIL GÖVDELER)
+-- ----------------------------------------------------
+
+-- ----------------------------------------------------
+-- 📊 AŞAMA 1: VIEW GÜNCELLEMELERİ (ASIL GÖVDELER)
+-- ----------------------------------------------------
+
+-- 🔄 ÖNCE BU VIEW DERLENMELİ: Çünkü V_CariAnalizRaporu buradaki CariID ve IslemTarihi kolonlarına bağımlı!
 ALTER VIEW [dbo].[vw_CariEkstreDetay] AS
 SELECT 
     c.id AS CariID,
@@ -132,13 +140,20 @@ SELECT
     CAST(ik.belgetarihi AS DATETIME) + CAST(ISNULL(ik.belgesaati, '00:00:00') AS DATETIME) AS IslemTarihi,
     COALESCE(NULLIF(CAST(ik.faturanumarası AS NVARCHAR(100)), ''), CAST(ik.belgenumarası AS NVARCHAR(100)), '-') AS BelgeNo,
     CAST(ik.islemtipi AS NVARCHAR(100)) AS IslemTipi,
-    CASE WHEN ISNULL(ik.BB_TL, 0) > 0 THEN ik.BB_TL ELSE ISNULL(ik.AB_TL, 0) END AS IslemTutari,
-    CASE WHEN ISNULL(ik.BB_TL, 0) > 0 THEN 'B' ELSE 'A' END AS Yon
+    CASE 
+        WHEN ISNULL(ik.BB_TL, 0) > 0 THEN ik.BB_TL 
+        ELSE ISNULL(ik.AB_TL, 0) 
+    END AS IslemTutari,
+    CASE 
+        WHEN ISNULL(ik.BB_TL, 0) > 0 THEN 'B' 
+        ELSE 'A' 
+    END AS Yon
 FROM [dbo].[islemkaydı] ik
 INNER JOIN [dbo].[cari] c ON COALESCE(NULLIF(CAST(ik.id_name AS NVARCHAR(255)), ''), N'Bilinmeyen Cari') = c.firma
 WHERE c.C_STATU = 0;
 GO
 
+-- 🔄 SONRA BU VIEW DERLENMELİ: Artık vw_CariEkstreDetay kolonları hazır olduğu için patlamaz.
 ALTER VIEW [dbo].[V_CariAnalizRaporu] AS
 SELECT 
     c.id,
@@ -151,18 +166,107 @@ SELECT
         ELSE 'Diğer Cari'
     END AS CariTipi,
     ISNULL(c.BB_TL, 0) - ISNULL(c.AB_TL, 0) AS NetBakiyeTL,
-    CASE WHEN c.email LIKE '%trendyol%' OR c.firma LIKE '%Trendyol%' THEN 'Trendyol' ELSE 'Doğal Piyasa' END AS Kanali,
-    COALESCE((SELECT MAX(ekstre.IslemTarihi) FROM [dbo].[vw_CariEkstreDetay] ekstre WHERE ekstre.CariID = c.id), c.ilkdate, GETDATE()) AS SonIslemTarihi,
+    CASE 
+        WHEN c.email LIKE '%trendyol%' OR c.firma LIKE '%Trendyol%' THEN 'Trendyol'
+        ELSE 'Doğal Piyasa'
+    END AS Kanali,
+    
+    COALESCE(
+        (SELECT MAX(ekstre.IslemTarihi) 
+         FROM [dbo].[vw_CariEkstreDetay] ekstre 
+         WHERE ekstre.CariID = c.id), 
+        c.ilkdate, 
+        GETDATE()
+    ) AS SonIslemTarihi,
+
     CASE 
         WHEN (ISNULL(c.BB_TL, 0) - ISNULL(c.AB_TL, 0)) > 0 THEN
-            DATEDIFF(DAY, COALESCE((SELECT MAX(ekstre.IslemTarihi) FROM [dbo].[vw_CariEkstreDetay] ekstre WHERE ekstre.CariID = c.id), c.ilkdate, GETDATE()), GETDATE())
+            DATEDIFF(DAY, 
+                COALESCE(
+                    (SELECT MAX(ekstre.IslemTarihi) FROM [dbo].[vw_CariEkstreDetay] ekstre WHERE ekstre.CariID = c.id), 
+                    c.ilkdate, 
+                    GETDATE()
+                ), 
+                GETDATE()
+            )
         ELSE 0
     END AS GecikmeGunSayisi
 FROM [dbo].[cari] c
 WHERE c.C_STATU = 0;
 GO
 
-ALTER VIEW [dbo].[vw_FaturaDetayRaporu] AS SELECT CAST(1 AS int) AS [GeciciKolon]
+ALTER VIEW [dbo].[vw_FaturaDetayRaporu] AS
+SELECT 
+    ik.ikid AS IslemNo,
+    CAST(
+        COALESCE(
+            NULLIF(CAST(ik.id_name AS NVARCHAR(255)), ''),
+            CASE WHEN ISNULL(i.kasaid, 0) > 1 THEN k.kasa_ack END,
+            CASE WHEN i.kasaid = 1 OR (ISNULL(i.kasaid, 0) = 0 AND ISNULL(i.bankaid, 0) = 0 AND i.Cariid = 1) THEN N'MERKEZ KASA / CARİ HAREKETİ' END,
+            CASE WHEN ISNULL(i.bankaid, 0) > 0 THEN b.banka + ' - ' + b.sube END,
+            CASE 
+                WHEN ik.islemtipi IN ('VRM', 'VRMC', 'BÇ', 'BY', 'MSF', 'DG', 'DC', 'VİRMAN') THEN N'İÇ TRANSFER HAREKETİ'
+                WHEN ik.islemtipi IN ('NT', 'NÖ') THEN N'KASA HAREKETİ'
+                ELSE N'Sistem Virman Satırı'
+            END
+        ) AS NVARCHAR(255)
+    ) AS CariAdi,
+    CAST(
+        CASE 
+            WHEN ik.islemtipi IN ('SF', 'PS', 'WBS', 'SÖSA') THEN 'SF'
+            WHEN ik.islemtipi IN ('AF', 'MG') THEN 'AF'
+            WHEN ik.islemtipi IN ('NT', 'GELHE', 'KKT', 'BTA', 'TT', 'KT') THEN 'NT'
+            WHEN ik.islemtipi IN ('NÖ', 'GIDHE', 'KKO', 'BTE', 'KKTED', 'KÖ') THEN 'NÖ'
+            WHEN ik.islemtipi IN ('PSI', 'MTAİ') THEN 'PSI'
+            WHEN ik.islemtipi IN ('VRM', 'VRMC', 'BÇ', 'BY', 'MSF', 'DG', 'DC', 'VİRMAN') THEN 'VRM'
+            WHEN ik.islemtipi = 'S' THEN 'SF'
+            WHEN ik.islemtipi = 'A' THEN 'AF'
+            ELSE ISNULL(ik.islemtipi, 'DIĞER')
+        END AS NVARCHAR(100)
+    ) AS IslemTipi,
+    CAST(ik.belgetarihi AS DATETIME) + CAST(ISNULL(ik.belgesaati, '00:00:00') AS DATETIME) AS FaturaTarihi,
+    COALESCE(NULLIF(CAST(ik.faturanumarası AS NVARCHAR(100)), ''), CAST(ik.belgenumarası AS NVARCHAR(100)), '-') AS BelgeNo,
+    CASE 
+        WHEN ISNULL(ik.AB_TL, 0) > 0 THEN ik.AB_TL 
+        ELSE ISNULL(ik.BB_TL, 0) 
+    END AS FaturaToplamTutar,
+    COALESCE(NULLIF(CAST(ack.I_NOTE AS NVARCHAR(MAX)), ''), N'İçerik detayları için tıklayın') AS FaturaNotu,
+    i.islemid AS SatirId,
+    COALESCE(NULLIF(CAST(i.detay AS NVARCHAR(255)), ''), N'Tanımsız Satır/Hizmet/Virman') AS UrunAdi,
+    COALESCE(NULLIF(CAST(i.detay_kodu AS NVARCHAR(100)), ''), '-') AS StokKodu,
+    COALESCE(NULLIF(CAST(i.birim AS NVARCHAR(50)), ''), N'ADET') AS Birim,
+    ISNULL(i.birimfiyat, 0) AS BirimFiyat, 
+    ISNULL(i.kdvoranı, 0) AS KdvOrani,    
+    ISNULL(i.kdv, 0) AS KdvTutari,        
+    CASE 
+        WHEN ISNULL(i.alısmiktar, 0) <> 0 THEN ISNULL(i.alıstutarı, 0) / i.alısmiktar
+        WHEN ISNULL(i.satısmiktar, 0) <> 0 THEN ISNULL(i.satıstutarı, 0) / i.satısmiktar
+        ELSE ISNULL(i.birimfiyat, 0)
+    END AS KdvDahilBirimFiyat,
+    CASE 
+        WHEN ISNULL(i.alısmiktar, 0) <> 0 THEN i.alısmiktar 
+        ELSE ISNULL(i.satısmiktar, 0) 
+    END AS Miktar,
+    CAST(
+        CASE 
+            WHEN ik.islemtipi IN ('VRM', 'VRMC', 'VİRMAN', 'BÇ', 'BY', 'MSF', 'DG', 'DC') THEN 
+                ISNULL(i.satıstutarı, 0)
+            ELSE
+                COALESCE(NULLIF(i.satıstutarı, 0), i.alıstutarı, 0)
+        END AS DECIMAL(18,4)
+    ) AS SatirTutarı
+FROM [dbo].[islem] i
+INNER JOIN [dbo].[islemkaydı] ik ON i.islemnumarası = CAST(ik.ikid AS NVARCHAR(100))
+LEFT JOIN [dbo].[kasa] k ON i.kasaid = k.kasaid 
+LEFT JOIN [dbo].[banka] b ON i.bankaid = b.id 
+LEFT JOIN [dbo].[islemkaydı_ack] ack ON ik.ikid = ack.IK_ID AND (ack.SR = 0 OR ack.SR IS NULL)
+WHERE i.islemid IS NOT NULL 
+  AND (
+       ik.islemtipi IN ('VRM', 'VRMC', 'VİRMAN') 
+       OR ISNULL(i.alısmiktar, 0) <> 0 OR ISNULL(i.satısmiktar, 0) <> 0 
+       OR ISNULL(i.alıstutarı, 0) <> 0 OR ISNULL(i.satıstutarı, 0) <> 0 
+       OR ISNULL(i.net, 0) <> 0
+  );
 GO
 
 ALTER VIEW [dbo].[vw_StokListesi]
