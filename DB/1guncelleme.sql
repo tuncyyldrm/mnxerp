@@ -1,6 +1,6 @@
 /* =========================================================================
     ✨ %100 SIFIR KURULUM VE GÜNCELLEME UYUMLU OTOMATİK ÜRETİLEN SCRIPT
-    Generated: 21.06.2026 00:46:01
+    Generated: 21.06.2026 00:43:01
     🛡️ Akıllı Dinamik Taslak (Dyna-Stub) Mimarisi & Index Koruması Aktiftir.
 ========================================================================= */
 
