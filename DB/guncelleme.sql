@@ -1,4 +1,4 @@
--- ✨ Otomatik Üretilen Güvenli Güncelleme Scripti (20.06.2026 20:31:16)
+-- ✨ Otomatik Üretilen Güvenli Güncelleme Scripti (20.06.2026 20:41:07)
 -- ⚠️ Manuel düzenleme yapmayın, 'npm run db-pack' ile güncelleyin.
 -- 🛡️ Dükkan veritabanları için "Akıllı Dinamik Taslak (Dyna-Stub)" mimarisi aktiftir.
 
@@ -302,7 +302,7 @@ BEGIN
     BEGIN
          DROP INDEX [IX_Islem_DetayKodu_Bakiye_Optimize] ON [dbo].[islem];
     END;
-    CREATE NONCLUSTERED INDEX [IX_Islem_DetayKodu_Bakiye_Optimize] ON [dbo].[islem] (detay_kodu ASC,I_DATE ASC,I_TIME ASC) INCLUDE (islemid,detay,detay_kodu,alısmiktar,satısmiktar,birim,birimfiyat,I_TYPE,birimfiyat,kdvoranı,kdv,depo,ikid_bag,alısmiktar,satısmiktar,alıstutarı,satıstutarı,kasaid,bankaid,Cariid,net);
+    CREATE NONCLUSTERED INDEX [IX_Islem_DetayKodu_Bakiye_Optimize] ON [dbo].[islem] (detay_kodu ASC,I_DATE ASC,I_TIME ASC) INCLUDE (alısmiktar,satısmiktar,I_TYPE,birimfiyat,depo,ikid_bag);
 END;
 GO
 
@@ -313,7 +313,7 @@ BEGIN
     BEGIN
          DROP INDEX [IX_Islem_IslemNumarasi_Covering] ON [dbo].[islem];
     END;
-    CREATE NONCLUSTERED INDEX [IX_Islem_IslemNumarasi_Covering] ON [dbo].[islem] (islemnumarası ASC) INCLUDE (islemid,detay,detay_kodu,alısmiktar,satısmiktar,birim,birimfiyat,I_TYPE,birimfiyat,kdvoranı,kdv,depo,ikid_bag,alısmiktar,satısmiktar,alıstutarı,satıstutarı,kasaid,bankaid,Cariid,net);
+    CREATE NONCLUSTERED INDEX [IX_Islem_IslemNumarasi_Covering] ON [dbo].[islem] (islemnumarası ASC) INCLUDE (islemid,detay,detay_kodu,birim,birimfiyat,kdvoranı,kdv,alısmiktar,satısmiktar,alıstutarı,satıstutarı,kasaid,bankaid,Cariid,net);
 END;
 GO
 
@@ -324,7 +324,7 @@ BEGIN
     BEGIN
          DROP INDEX [IX_Stok_Filtreleme_Master] ON [dbo].[stok];
     END;
-    CREATE NONCLUSTERED INDEX [IX_Stok_Filtreleme_Master] ON [dbo].[stok] (grubu ASC,kateGOri ASC,tipi ASC) INCLUDE (urunkodu,urun,urunkodu,urun,urunalt,fiyatı,STK_FULL,urunkodu,ureticifirma,grubu,urun,Raf,grubu,fiyatı,kateGOri,tipi,STK_FULL,Raf,Raf,fiyatı,OEM,STK_FULL,OEM_0,OEM_1,OEM_2,OEM_3,OEM_4);
+    CREATE NONCLUSTERED INDEX [IX_Stok_Filtreleme_Master] ON [dbo].[stok] (grubu ASC,kateGOri ASC,tipi ASC) INCLUDE (urunkodu,urun,fiyatı,STK_FULL,Raf);
 END;
 GO
 
@@ -335,7 +335,7 @@ BEGIN
     BEGIN
          DROP INDEX [IX_Stok_Urun_Arama] ON [dbo].[stok];
     END;
-    CREATE NONCLUSTERED INDEX [IX_Stok_Urun_Arama] ON [dbo].[stok] (urun ASC) INCLUDE (urunkodu,urun,urunkodu,urun,urunalt,fiyatı,STK_FULL,urunkodu,ureticifirma,grubu,urun,Raf,grubu,fiyatı,kateGOri,tipi,STK_FULL,Raf,Raf,fiyatı,OEM,STK_FULL,OEM_0,OEM_1,OEM_2,OEM_3,OEM_4);
+    CREATE NONCLUSTERED INDEX [IX_Stok_Urun_Arama] ON [dbo].[stok] (urun ASC) INCLUDE (urunkodu,fiyatı,STK_FULL,Raf,grubu);
 END;
 GO
 
@@ -346,7 +346,7 @@ BEGIN
     BEGIN
          DROP INDEX [IX_Stok_B2B_Search_Optimize] ON [dbo].[stok];
     END;
-    CREATE NONCLUSTERED INDEX [IX_Stok_B2B_Search_Optimize] ON [dbo].[stok] (urunkodu ASC) INCLUDE (urunkodu,urun,urunkodu,urun,urunalt,fiyatı,STK_FULL,urunkodu,ureticifirma,grubu,urun,Raf,grubu,fiyatı,kateGOri,tipi,STK_FULL,Raf,Raf,fiyatı,OEM,STK_FULL,OEM_0,OEM_1,OEM_2,OEM_3,OEM_4);
+    CREATE NONCLUSTERED INDEX [IX_Stok_B2B_Search_Optimize] ON [dbo].[stok] (urunkodu ASC) INCLUDE (urun,urunalt,ureticifirma,grubu,kateGOri,tipi,Raf,fiyatı,OEM,STK_FULL,OEM_0,OEM_1,OEM_2,OEM_3,OEM_4);
 END;
 GO
 
@@ -357,7 +357,7 @@ BEGIN
     BEGIN
          DROP INDEX [IX_Stok_OEM_Search] ON [dbo].[stok];
     END;
-    CREATE NONCLUSTERED INDEX [IX_Stok_OEM_Search] ON [dbo].[stok] (OEM ASC) INCLUDE (urunkodu,urun,urunkodu,urun,urunalt,fiyatı,STK_FULL,urunkodu,ureticifirma,grubu,urun,Raf,grubu,fiyatı,kateGOri,tipi,STK_FULL,Raf,Raf,fiyatı,OEM,STK_FULL,OEM_0,OEM_1,OEM_2,OEM_3,OEM_4);
+    CREATE NONCLUSTERED INDEX [IX_Stok_OEM_Search] ON [dbo].[stok] (OEM ASC) INCLUDE (urunkodu,urun);
 END;
 GO
 
