@@ -31,6 +31,9 @@ export async function GET(request: NextRequest) {
                 return;
             }
 
+            // Hangi ortamda çalıştığımızı algılıyoruz (development / production)
+            const isDevMode = process.env.NODE_ENV === 'development';
+
             // ----------------------------------------------------
             // AŞAMA 1: GIT DOĞRULAMA & KOD ÇEKME
             // ----------------------------------------------------
@@ -48,15 +51,20 @@ export async function GET(request: NextRequest) {
             // ----------------------------------------------------
             // AŞAMA 2: NEXT.JS YENİDEN BUILD (DERLEME)
             // ----------------------------------------------------
-            await sendProgress('loading', '🛠️ Aşama 2/4: Yeni kodlar dükkan için optimize ediliyor (Build alınıyor). Bu işlem 30-40 sn sürebilir...', 50);
-            try {
-                // Projeyi üretim moduna göre yerelde derliyoruz
-                await execPromise('npm run build', { cwd: process.cwd() });
-                await sendProgress('loading', '✅ Proje başarıyla yeniden derlendi (Build tamam).', 75);
-            } catch (buildError: any) {
-                await sendProgress('error', `❌ Build (Derleme) Hatası! Kodda syntax hatası veya eksik paket olabilir. Detay: ${buildError?.message || buildError}`, 75);
-                await writer.close();
-                return;
+            if (isDevMode) {
+                // Eğer kendi bilgisayarında 'npm run dev' modundaysan build adımını bypass et
+                await sendProgress('loading', 'ℹ️ Yerel test ortamı (Dev Modu) algılandı. Build (Derleme) aşaması es geçiliyor...', 75);
+            } else {
+                // Sahada (Canlı üretim ortamında) build alıyoruz
+                await sendProgress('loading', '🛠️ Aşama 2/4: Yeni kodlar dükkan için optimize ediliyor (Build alınıyor). Bu işlem 30-40 sn sürebilir...', 50);
+                try {
+                    await execPromise('npm run build', { cwd: process.cwd() });
+                    await sendProgress('loading', '✅ Proje başarıyla yeniden derlendi (Build tamam).', 75);
+                } catch (buildError: any) {
+                    await sendProgress('error', `❌ Build (Derleme) Hatası! Kodda syntax hatası veya eksik paket olabilir. Detay: ${buildError?.message || buildError}`, 75);
+                    await writer.close();
+                    return;
+                }
             }
 
             // ----------------------------------------------------
@@ -87,33 +95,34 @@ export async function GET(request: NextRequest) {
             await sendProgress('loading', `✅ SQL Senkronizasyonu tamamlandı. ${basariliSorguSayisi} SQL bloğu işlendi.`, 90);
 
             // ----------------------------------------------------
-            // AŞAMA 4: PM2 RESTART VEYA GÜVENLİ ÇIŞIK (EXIT 0)
+            // AŞAMA 4: PM2 RESTART VEYA GÜVENLİ DURDURMA (EXIT 0)
             // ----------------------------------------------------
-            await sendProgress('loading', '🚀 Aşama 4/4: PM2/Sistem servisi güncelleniyor, yeni sürüm havada devreye alınıyor...', 95);
+            await sendProgress('loading', '🚀 Aşama 4/4: Sistem servisleri güncelleniyor, yeni sürüm devreye alınıyor...', 95);
             
-            // Son başarılı mesajını gönderip bağlantıyı kapatıyoruz ki tarayıcı askıda kalmasın
-            await sendProgress('success', `🎉 MNX ERP Başarıyla Güncellendi! Kod bütünlüğü sağlandı, build alındı ve ${basariliSorguSayisi} SQL bloğu işlendi. Sistem aktif ediliyor...`, 100);
+            await sendProgress('success', `🎉 MNX ERP Başarıyla Güncellendi! Mod: ${isDevMode ? 'Geliştirme' : 'Üretim'}, ${basariliSorguSayisi} SQL bloğu işlendi.`, 100);
             await writer.close();
 
-            // Tarayıcıya mesaj ulaştıktan 2 saniye sonra sistemi güvenli şekilde kapatıyoruz / yeniliyoruz
+            // 2 saniye sonra sistemi akıllıca hot-restart veya sonlandırma moduna alıyoruz
             setTimeout(async () => {
                 try {
-                    // PM2 ortam değişkenlerinden sürecin kendi adını dinamik olarak yakalıyoruz
                     const dynamicPm2Name = process.env.name;
 
                     if (dynamicPm2Name) {
                         console.log(`Dinamik PM2 ismi tespit edildi: ${dynamicPm2Name}. Yeniden başlatılıyor...`);
                         await execPromise(`pm2 restart "${dynamicPm2Name}"`);
                     } else {
-                        // Eğer PM2 yoksa, sistem build'ı zaten başarıyla aldı ve SQL'i işledi.
-                        // Süreci sonlandırıyoruz. Dükkandaki bir servis yöneticisi veya el ile tetiklemelerde
-                        // projenin kilitlenmemesi için en güvenli fallback süreci sonlandırmaktır.
-                        console.log("PM2 süreç adı bulunamadı. Değişikliklerin devreye girmesi için süreç güvenli şekilde sonlandırılıyor (Exit 0)...");
-                        process.exit(0);
+                        if (isDevMode) {
+                            // Kendi bilgisayarında dev modundaysan kapatma yapma ki terminalin düşmesin, testine devam et
+                            console.log("Yerel dev ortamı çalışıyor. Süreç sonlandırılmadı, kesintisiz devam edebilirsiniz.");
+                        } else {
+                            // Eğer PM2 yoksa ama canlı moddaysa süreci temizce kapat
+                            console.log("PM2 süreç adı bulunamadı. Değişikliklerin devreye girmesi için süreç güvenli şekilde sonlandırılıyor (Exit 0)...");
+                            process.exit(0);
+                        }
                     }
                 } catch (restartError) {
                     console.log("Yeniden başlatma işlemi esnasında hata oluştu, process.exit(0) uygulanıyor.");
-                    process.exit(0);
+                    if (!isDevMode) process.exit(0);
                 }
             }, 2000);
 
