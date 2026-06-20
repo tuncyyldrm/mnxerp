@@ -1,4 +1,4 @@
--- ✨ Otomatik Üretilen Güvenli Güncelleme Scripti (20.06.2026 20:31:07)
+-- ✨ Otomatik Üretilen Güvenli Güncelleme Scripti (20.06.2026 20:31:16)
 -- ⚠️ Manuel düzenleme yapmayın, 'npm run db-pack' ile güncelleyin.
 -- 🛡️ Dükkan veritabanları için "Akıllı Dinamik Taslak (Dyna-Stub)" mimarisi aktiftir.
 
