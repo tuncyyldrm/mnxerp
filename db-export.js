@@ -14,64 +14,114 @@ const config = {
 };
 
 // =========================================================================
-// 📋 MANIFEST: KESİN BAĞIMLILIK SIRALAMASINA GÖRE NESNELER
+// 📦 %100 GERÇEK VE STATİK TAM GÖVDELER (LOKAL DB BOŞSA BİLE BUNLAR BASILIR)
 // =========================================================================
+const MASTER_SCHEMAS = {
+    views: {
+        vw_CariEkstreDetay: `CREATE VIEW [dbo].[vw_CariEkstreDetay] AS
+SELECT 
+    c.id AS CariID,
+    c.kodu AS CariKodu,
+    c.firma AS FirmaAdi,
+    ik.ikid AS IslemNo,
+    CAST(ik.belgetarihi AS DATETIME) + CAST(ISNULL(ik.belgesaati, '00:00:00') AS DATETIME) AS IslemTarihi,
+    COALESCE(NULLIF(CAST(ik.faturanumarası AS NVARCHAR(100)), ''), CAST(ik.belgenumarası AS NVARCHAR(100)), '-') AS BelgeNo,
+    CAST(ik.islemtipi AS NVARCHAR(100)) AS IslemTipi,
+    CASE WHEN ISNULL(ik.BB_TL, 0) > 0 THEN ik.BB_TL ELSE ISNULL(ik.AB_TL, 0) END AS IslemTutari,
+    CASE WHEN ISNULL(ik.BB_TL, 0) > 0 THEN 'B' ELSE 'A' END AS Yon
+FROM [dbo].[islemkaydı] ik
+INNER JOIN [dbo].[cari] c ON COALESCE(NULLIF(CAST(ik.id_name AS NVARCHAR(255)), ''), N'Bilinmeyen Cari') = c.firma
+WHERE c.C_STATU = 0;`,
+
+        V_CariAnalizRaporu: `CREATE VIEW [dbo].[V_CariAnalizRaporu] AS
+SELECT 
+    c.id,
+    c.kodu,
+    c.firma,
+    COALESCE(NULLIF(LTRIM(RTRIM(c.sehir)), ''), 'BELİRTİLMEMİŞ') AS sehir,
+    CASE 
+        WHEN c.kodu LIKE '120%' THEN 'Müşteri (Alıcı)'
+        WHEN c.kodu LIKE '320%' THEN 'Tedarikçi (Satıcı)'
+        ELSE 'Diğer Cari'
+    END AS CariTipi,
+    ISNULL(c.BB_TL, 0) - ISNULL(c.AB_TL, 0) AS NetBakiyeTL,
+    CASE WHEN c.email LIKE '%trendyol%' OR c.firma LIKE '%Trendyol%' THEN 'Trendyol' ELSE 'Doğal Piyasa' END AS Kanali,
+    COALESCE((SELECT MAX(ekstre.IslemTarihi) FROM [dbo].[vw_CariEkstreDetay] ekstre WHERE ekstre.CariID = c.id), c.ilkdate, GETDATE()) AS SonIslemTarihi,
+    CASE 
+        WHEN (ISNULL(c.BB_TL, 0) - ISNULL(c.AB_TL, 0)) > 0 THEN
+            DATEDIFF(DAY, COALESCE((SELECT MAX(ekstre.IslemTarihi) FROM [dbo].[vw_CariEkstreDetay] ekstre WHERE ekstre.CariID = c.id), c.ilkdate, GETDATE()), GETDATE())
+        ELSE 0
+    END AS GecikmeGunSayisi
+FROM [dbo].[cari] c
+WHERE c.C_STATU = 0;`,
+
+        vw_FaturaDetayRaporu: `CREATE VIEW [dbo].[vw_FaturaDetayRaporu] AS
+SELECT 
+    ik.ikid AS IslemNo,
+    CAST(COALESCE(NULLIF(CAST(ik.id_name AS NVARCHAR(255)), ''), CASE WHEN ISNULL(i.kasaid, 0) > 1 THEN k.kasa_ack END, CASE WHEN i.kasaid = 1 OR (ISNULL(i.kasaid, 0) = 0 AND ISNULL(i.bankaid, 0) = 0 AND i.Cariid = 1) THEN N'MERKEZ KASA / CARİ HAREKETİ' END, CASE WHEN ISNULL(i.bankaid, 0) > 0 THEN b.banka + ' - ' + b.sube END, CASE WHEN ik.islemtipi IN ('VRM', 'VRMC', 'BÇ', 'BY', 'MSF', 'DG', 'DC', 'VİRMAN') THEN N'İÇ TRANSFER HAREKETİ' WHEN ik.islemtipi IN ('NT', 'NÖ') THEN N'KASA HAREKETİ' ELSE N'Sistem Virman Satırı' END) AS NVARCHAR(255)) AS CariAdi,
+    CAST(CASE WHEN ik.islemtipi IN ('SF', 'PS', 'WBS', 'SÖSA') THEN 'SF' WHEN ik.islemtipi IN ('AF', 'MG') THEN 'AF' WHEN ik.islemtipi IN ('NT', 'GELHE', 'KKT', 'BTA', 'TT', 'KT') THEN 'NT' WHEN ik.islemtipi IN ('NÖ', 'GIDHE', 'KKO', 'BTE', 'KKTED', 'KÖ') THEN 'NÖ' WHEN ik.islemtipi IN ('PSI', 'MTAİ') THEN 'PSI' WHEN ik.islemtipi IN ('VRM', 'VRMC', 'BÇ', 'BY', 'MSF', 'DG', 'DC', 'VİRMAN') THEN 'VRM' WHEN ik.islemtipi = 'S' THEN 'SF' WHEN ik.islemtipi = 'A' THEN 'AF' ELSE ISNULL(ik.islemtipi, 'DIĞER') END AS NVARCHAR(100)) AS IslemTipi,
+    CAST(ik.belgetarihi AS DATETIME) + CAST(ISNULL(ik.belgesaati, '00:00:00') AS DATETIME) AS FaturaTarihi,
+    COALESCE(NULLIF(CAST(ik.faturanumarası AS NVARCHAR(100)), ''), CAST(ik.belgenumarası AS NVARCHAR(100)), '-') AS BelgeNo,
+    CASE WHEN ISNULL(ik.AB_TL, 0) > 0 THEN ik.AB_TL ELSE ISNULL(ik.BB_TL, 0) END AS FaturaToplamTutar,
+    COALESCE(NULLIF(CAST(ack.I_NOTE AS NVARCHAR(MAX)), ''), N'İçerik detayları için tıklayın') AS FaturaNotu,
+    i.islemid AS SatirId,
+    COALESCE(NULLIF(CAST(i.detay AS NVARCHAR(255)), ''), N'Tanımsız Satır/Hizmet/Virman') AS UrunAdi,
+    COALESCE(NULLIF(CAST(i.detay_kodu AS NVARCHAR(100)), ''), '-') AS StokKodu,
+    COALESCE(NULLIF(CAST(i.birim AS NVARCHAR(50)), ''), N'ADET') AS Birim,
+    ISNULL(i.birimfiyat, 0) AS BirimFiyat, ISNULL(i.kdvoranı, 0) AS KdvOrani, ISNULL(i.kdv, 0) AS KdvTutari,        
+    CASE WHEN ISNULL(i.alısmiktar, 0) <> 0 THEN ISNULL(i.alıstutarı, 0) / i.alısmiktar WHEN ISNULL(i.satısmiktar, 0) <> 0 THEN ISNULL(i.satıstutarı, 0) / i.satısmiktar ELSE ISNULL(i.birimfiyat, 0) END AS KdvDahilBirimFiyat,
+    CASE WHEN ISNULL(i.alısmiktar, 0) <> 0 THEN i.alısmiktar ELSE ISNULL(i.satısmiktar, 0) END AS Miktar,
+    CAST(CASE WHEN ik.islemtipi IN ('VRM', 'VRMC', 'VİRMAN', 'BÇ', 'BY', 'MSF', 'DG', 'DC') THEN ISNULL(i.satıstutarı, 0) ELSE COALESCE(NULLIF(i.satıstutarı, 0), i.alıstutarı, 0) END AS DECIMAL(18,4)) AS SatirTutarı
+FROM [dbo].[islem] i
+INNER JOIN [dbo].[islemkaydı] ik ON i.islemnumarası = CAST(ik.ikid AS NVARCHAR(100))
+LEFT JOIN [dbo].[kasa] k ON i.kasaid = k.kasaid 
+LEFT JOIN [dbo].[banka] b ON i.bankaid = b.id 
+LEFT JOIN [dbo].[islemkaydı_ack] ack ON ik.ikid = ack.IK_ID AND (ack.SR = 0 OR ack.SR IS NULL)
+WHERE i.islemid IS NOT NULL AND (ik.islemtipi IN ('VRM', 'VRMC', 'VİRMAN') OR ISNULL(i.alısmiktar, 0) <> 0 OR ISNULL(i.satısmiktar, 0) <> 0 OR ISNULL(i.alıstutarı, 0) <> 0 OR ISNULL(i.satıstutarı, 0) <> 0 OR ISNULL(i.net, 0) <> 0);`,
+
+        vw_StokListesi: `CREATE VIEW [dbo].[vw_StokListesi] AS
+SELECT 
+    s.urunkodu, s.urun, s.urunalt, s.ureticifirma, s.grubu, s.kategori, s.tipi, s.Raf, s.fiyatı, 
+    s.OEM, s.STK_FULL, s.OEM_0, s.OEM_1, s.OEM_2, s.OEM_3, s.OEM_4,
+    NULL AS OEM_5, NULL AS OEM_6, NULL AS OEM_7, NULL AS OEM_8, NULL AS OEM_9,
+    ISNULL(bakiye.ToplamBakiye, 0) AS MevcutBakiye
+FROM [dbo].[stok] s WITH (NOLOCK)
+OUTER APPLY (
+    SELECT SUM(ISNULL(i.alısmiktar, 0) - ISNULL(i.satısmiktar, 0)) AS ToplamBakiye
+    FROM [dbo].[islem] i WITH (NOLOCK)
+    WHERE i.detay_kodu = s.urunkodu
+) AS bakiye;`
+    },
+    procedures: {
+        sp_StokDetayGetir: `CREATE PROCEDURE dbo.sp_StokDetayGetir @UrunKodu NVARCHAR(100) AS BEGIN SET NOCOUNT ON; SELECT s.urunkodu, s.urun, s.urunalt, s.ureticifirma, s.grubu, s.kategori, s.tipi, s.Raf, s.fiyatı, s.OEM, s.STK_FULL, s.OEM_0, s.OEM_1, s.OEM_2, s.OEM_3, s.OEM_4, ISNULL(b.ToplamBakiye, 0) AS MevcutBakiye FROM dbo.stok s WITH (NOLOCK) OUTER APPLY (SELECT SUM(i.alısmiktar - i.satısmiktar) AS ToplamBakiye FROM dbo.islem i WITH (NOLOCK) WHERE i.detay_kodu = s.urunkodu) b WHERE s.urunkodu = @UrunKodu; END`,
+        sp_StokDuzenle: `CREATE PROCEDURE [dbo].[sp_StokDuzenle] @UrunKodu NVARCHAR(100), @UrunAd NVARCHAR(250), @Raf NVARCHAR(50), @OEM_0 NVARCHAR(100), @OEM_1 NVARCHAR(100), @OEM_2 NVARCHAR(100), @OEM_3 NVARCHAR(100), @OEM_4 NVARCHAR(100) AS BEGIN SET NOCOUNT ON; UPDATE [dbo].[stok] SET urun = LTRIM(RTRIM(@UrunAd)), Raf = LTRIM(RTRIM(@Raf)), OEM_0 = LTRIM(RTRIM(@OEM_0)), OEM_1 = LTRIM(RTRIM(@OEM_1)), OEM_2 = LTRIM(RTRIM(@OEM_2)), OEM_3 = LTRIM(RTRIM(@OEM_3)), OEM_4 = LTRIM(RTRIM(@OEM_4)) WHERE urunkodu = @UrunKodu; END`,
+        sp_UrunHareketAnaliz: `CREATE PROCEDURE dbo.sp_UrunHareketAnaliz @DetayKodu NVARCHAR(100) AS BEGIN SET NOCOUNT ON; SELECT i.I_DATE AS Tarih, i.I_TIME AS Saat, i.I_TYPE AS IslemTipi, ik.id_name AS MusteriAdi, i.alısmiktar AS Giris, i.satısmiktar AS Cikis, i.birimfiyat AS BirimFiyat, i.depo AS DepoBilgisi FROM dbo.islem i WITH (NOLOCK) LEFT JOIN dbo.islemkaydı ik WITH (NOLOCK) ON i.ikid_bag = ik.ikid WHERE i.detay_kodu = @DetayKodu ORDER BY i.I_DATE DESC, i.I_TIME DESC; END`
+    }
+};
+
 const DB = {
-    views: [
-        'vw_CariEkstreDetay',   // Önce ana detay view'ı
-        'V_CariAnalizRaporu',   // vw_CariEkstreDetay'a bağımlı analiz view'ı
-        'vw_FaturaDetayRaporu',
-        'vw_StokListesi'
-    ],
-    procedures: [
-        'sp_StokDetayGetir',
-        'sp_StokDuzenle',
-        'sp_UrunHareketAnaliz'
-    ],
+    views: ['vw_CariEkstreDetay', 'V_CariAnalizRaporu', 'vw_FaturaDetayRaporu', 'vw_StokListesi'],
+    procedures: ['sp_StokDetayGetir', 'sp_StokDuzenle', 'sp_UrunHareketAnaliz'],
     indexes: [
-        { name: 'IX_CARI_STATU_ID', table: 'cari', cols: 'C_STATU, id', include: 'kodu,firma,sehir,email,ilkdate,BB_TL,AB_TL' },
-        { name: 'IX_ISLEMKAYDI_IKID_COVERING', table: 'islemkaydı', cols: 'ikid', include: 'id_name,belgetarihi,belgesaati,faturanumarası,belgenumarası,islemtipi,BB_TL,AB_TL' },
-        { name: 'IX_ISLEM_ISLEMNUMARASI_COVERING', table: 'islem', cols: 'islemnumarası', include: 'islemid,detay,detay_kodu,birim,birimfiyat,kdvoranı,kdv,alısmiktar,satısmiktar,alıstutarı,satıstutarı,kasaid,bankaid,Cariid,net' },
-        { name: 'IX_ACK_IKID', table: 'islemkaydı_ack', cols: 'IK_ID', include: 'I_NOTE,SR' },
-        { name: 'IX_ISLEM_DETAY_KODU_BAKIYE', table: 'islem', cols: 'detay_kodu, I_DATE, I_TIME', include: 'alısmiktar,satısmiktar,I_TYPE,birimfiyat,depo,ikid_bag' },
-        { name: 'IX_STOK_ARAMA_MASTER', table: 'stok', cols: 'urunkodu', include: 'urun,urunalt,ureticifirma,grubu,kategori,tipi,Raf,fiyatı,OEM,STK_FULL,OEM_0,OEM_1,OEM_2,OEM_3,OEM_4' },
-        { name: 'IX_STOK_URUN_AD_ARAMA', table: 'stok', cols: 'urun', include: 'urunkodu,fiyatı,STK_FULL,Raf,grubu' },
-        { name: 'IX_KASA_ID', table: 'kasa', cols: 'kasaid', include: 'kasa_ack' },
-        { name: 'IX_BANKA_ID', table: 'banka', cols: 'id', include: 'banka,sube' }
+        { name: 'IX_IslemKaydi_Covering_Amor', table: 'islemkaydı', cols: 'ikid', include: 'id_name,belgetarihi,belgesaati,faturanumarası,belgenumarası,islemtipi,BB_TL,AB_TL' },
+        { name: 'IX_Islem_IslemNumarasi_Covering', table: 'islem', cols: 'islemnumarası', include: 'islemid,detay,detay_kodu,birim,birimfiyat,kdvoranı,kdv,alısmiktar,satısmiktar,alıstutarı,satıstutarı,kasaid,bankaid,Cariid,net' },
+        { name: 'IX_Islem_DetayKodu_Bakiye_Optimize', table: 'islem', cols: 'detay_kodu, I_DATE, I_TIME', include: 'alısmiktar,satısmiktar,I_TYPE,birimfiyat,depo,ikid_bag' },
+        { name: 'IX_Stok_B2B_Search_Optimize', table: 'stok', cols: 'urunkodu', include: 'urun,urunalt,ureticifirma,grubu,kategori,tipi,Raf,fiyatı,OEM,STK_FULL,OEM_0,OEM_1,OEM_2,OEM_3,OEM_4' },
+        { name: 'IX_Stok_Urun_Arama', table: 'stok', cols: 'urun', include: 'urunkodu,fiyatı,STK_FULL,Raf,grubu' },
+        { name: 'IX_Stok_Filtreleme_Master', table: 'stok', cols: 'grubu, kategori, tipi', include: 'urunkodu,urun,fiyatı,STK_FULL,Raf' },
+        { name: 'IX_Stok_OEM_Search', table: 'stok', cols: 'OEM', include: 'urunkodu,urun' }
     ]
 };
 
 // =========================================================================
-// 🛡️ DYNA-STUB ENGINE: %100 TABLOSUZ VE BAĞIMSIZ SANAL ŞEMALAR
+// SCRIPT YAPICI YARDIMCILARI
 // =========================================================================
-const STUBS = {
-    vw_CariEkstreDetay: `
-        CREATE VIEW [dbo].[vw_CariEkstreDetay] AS 
-        SELECT CAST(1 AS int) AS [CariID], CAST('1' AS varchar(50)) AS [CariKodu], CAST('1' AS varchar(500)) AS [FirmaAdi], CAST(1 AS int) AS [IslemNo], CAST(GETDATE() AS datetime) AS [IslemTarihi], CAST('1' AS nvarchar(100)) AS [BelgeNo], CAST('1' AS nvarchar(100)) AS [IslemTipi], CAST(1.0 AS float) AS [IslemTutari], CAST('B' AS varchar(1)) AS [Yon]`,
-    
-    V_CariAnalizRaporu: `
-        CREATE VIEW [dbo].[V_CariAnalizRaporu] AS 
-        SELECT CAST(1 AS int) AS [id], CAST('1' AS varchar(50)) AS [kodu], CAST('1' AS varchar(500)) AS [firma], CAST('1' AS varchar(50)) AS [sehir], CAST('1' AS varchar(18)) AS [CariTipi], CAST(1.0 AS float) AS [NetBakiyeTL], CAST('1' AS varchar(12)) AS [Kanali], CAST(GETDATE() AS datetime) AS [SonIslemTarihi], CAST(1 AS int) AS [GecikmeGunSayisi]`,
-    
-    vw_FaturaDetayRaporu: `
-        CREATE VIEW [dbo].[vw_FaturaDetayRaporu] AS 
-        SELECT CAST(1 AS int) AS [IslemNo], CAST('1' AS nvarchar(255)) AS [CariAdi], CAST('1' AS nvarchar(100)) AS [IslemTipi], CAST(GETDATE() AS datetime) AS [FaturaTarihi], CAST('1' AS nvarchar(100)) AS [BelgeNo], CAST(1.0 AS float) AS [FaturaToplamTutar], CAST('1' AS nvarchar(max)) AS [FaturaNotu], CAST(1 AS int) AS [SatirId], CAST('1' AS nvarchar(255)) AS [UrunAdi], CAST('1' AS nvarchar(100)) AS [StokKodu], CAST('1' AS nvarchar(50)) AS [Birim], CAST(1.0 AS float) AS [BirimFiyat], CAST(1 AS int) AS [KdvOrani], CAST(1.0 AS float) AS [KdvTutari], CAST(1.0 AS float) AS [KdvDahilBirimFiyat], CAST(1.0 AS float) AS [Miktar], CAST(1.0 AS decimal(18,4)) AS [SatirTutarı]`,
-    
-    vw_StokListesi: `
-        CREATE VIEW [dbo].[vw_StokListesi] AS 
-        SELECT CAST('1' AS varchar(300)) AS [urunkodu], CAST('1' AS varchar(300)) AS [urun], CAST('1' AS varchar(300)) AS [urunalt], CAST('1' AS varchar(300)) AS [ureticifirma], CAST('1' AS varchar(300)) AS [grubu], CAST('1' AS varchar(300)) AS [kategori], CAST('1' AS varchar(300)) AS [tipi], CAST('1' AS varchar(50)) AS [Raf], CAST(1.0 AS float) AS [fiyatı], CAST('1' AS varchar(350)) AS [OEM], CAST(1.0 AS float) AS [STK_FULL], CAST('1' AS varchar(350)) AS [OEM_0], CAST('1' AS varchar(350)) AS [OEM_1], CAST('1' AS varchar(350)) AS [OEM_2], CAST('1' AS varchar(350)) AS [OEM_3], CAST('1' AS varchar(350)) AS [OEM_4], CAST(1 AS int) AS [OEM_5], CAST(1 AS int) AS [OEM_6], CAST(1 AS int) AS [OEM_7], CAST(1 AS int) AS [OEM_8], CAST(1 AS int) AS [OEM_9], CAST(1.0 AS float) AS [MevcutBakiye]`
-};
-
 function safeAlterView(def) {
-    return def
-        .replace(/CREATE\s+VIEW/i, 'ALTER VIEW')
-        .replace(/WITH\s+SCHEMABINDING/i, '');
+    return def.replace(/CREATE\s+VIEW/i, 'ALTER VIEW').replace(/WITH\s+SCHEMABINDING/i, '');
 }
 
 function safeAlterProc(def) {
-    return def
-        .replace(/CREATE\s+PROCEDURE/i, 'ALTER PROCEDURE')
-        .replace(/CREATE\s+PROC/i, 'ALTER PROCEDURE');
+    return def.replace(/CREATE\s+PROCEDURE/i, 'ALTER PROCEDURE').replace(/CREATE\s+PROC/i, 'ALTER PROCEDURE');
 }
 
 function buildIndex(ix) {
@@ -85,133 +135,91 @@ BEGIN
     END;
     CREATE NONCLUSTERED INDEX [${ix.name}] ON dbo.${ix.table} (${ix.cols}) ${includeStr};
 END;
-GO
-`;
+GO\n`;
 }
 
 // =========================================================================
-// 🚀 MAIN EXECUTION
+// ANA ÇALIŞTIRICI
 // =========================================================================
 async function run() {
-    const pool = await sql.connect(config);
+    let pool;
+    let viewMap = {};
+    let spMap = {};
+
+    // Dinamik Mod denemesi (Lokal DB varsa oradaki canlı kodları çekmeye çalışır)
+    try {
+        pool = await sql.connect(config);
+        const viewRes = await pool.request().query("SELECT o.name, sm.definition FROM sys.objects o LEFT JOIN sys.sql_modules sm ON sm.object_id = o.object_id WHERE o.type='V'");
+        const spRes = await pool.request().query("SELECT o.name, sm.definition FROM sys.objects o LEFT JOIN sys.sql_modules sm ON sm.object_id = o.object_id WHERE o.type='P'");
+        
+        viewRes.recordset.forEach(v => { if(v.definition) viewMap[v.name] = v.definition; });
+        spRes.recordset.forEach(p => { if(p.definition) spMap[p.name] = p.definition; });
+        console.log('ℹ️ Yerel veritabanı aktif, şemalar dinamik olarak karşılaştırılıyor...');
+    } catch (err) {
+        console.log('⚠️ Yerel DB bağlantısı başarısız veya boş. %100 Statik Master şemalar kullanılacak.');
+    }
 
     let script = `/* =========================================================================
-    ✨ OTOMATİK ÜRETİLEN GÜVENLİ KURULUM VE GÜNCELLEME SCRIPTİ
+    ✨ %100 SIFIR KURULUM VE GÜNCELLEME UYUMLU OTOMATİK ÜRETİLEN SCRIPT
     Generated: ${new Date().toLocaleString('tr-TR')}
-    🛡️ Taslak Mimari & %100 Sıfır Kurulum Güvencesi Aktiftir.
+    🛡️ Akıllı Dinamik Taslak (Dyna-Stub) Mimarisi & Index Koruması Aktiftir.
 ========================================================================= */
 
 SET NOCOUNT ON;
 GO
-`;
 
-    const viewRes = await pool.request().query(`
-        SELECT o.name, sm.definition FROM sys.objects o
-        LEFT JOIN sys.sql_modules sm ON sm.object_id = o.object_id WHERE o.type='V'
-    `);
+/* ===================== 🛡️ ADIM 1: DYNAMIC STUBS (İLK KURULUM DESTEĞİ) ===================== */
+-- Hedef DB sıfırsa (İlk Kurulum) ALTER komutlarının patlamaması için hafif taslaklar oluşturulur.
+-- Nesneler dükkanda zaten varsa bu adım pas geçilir, mevcut kodlar asla silinmez!
+\n`;
 
-    const spRes = await pool.request().query(`
-        SELECT o.name, sm.definition FROM sys.objects o
-        LEFT JOIN sys.sql_modules sm ON sm.object_id = o.object_id WHERE o.type='P'
-    `);
-
-    const viewMap = {};
-    const spMap = {};
-    viewRes.recordset.forEach(v => viewMap[v.name] = v.definition);
-    spRes.recordset.forEach(p => spMap[p.name] = p.definition);
-
-    // =========================================================================
-    // ADIM 1: GÜVENLİ SIFIRLAMA VE TEMİZ TASLAK AÇMA (CRITICAL FIX)
-    // =========================================================================
-    script += `\n/* ===================== 🛡️ ADIM 1: DYNAMIC STUBS (TEMİZ TEMEL) ===================== */\n`;
-    
-    // Bağımlılıklardan dolayı DROP sıralaması manifest'in TERSİ olmalı
-    const reversedViews = [...DB.views].reverse();
-    for (const v of reversedViews) {
-        script += `
-IF EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[${v}]') AND type in (N'V'))
+    // 1. ADIM: EĞER HEDEFTE NESNE YOKSA (İLK KURULUM) KÖR TASLAK ATILIR (BÖYCE ALTER GÖVDESİ PATLAMAZ)
+    for (const v of DB.views) {
+        script += `IF NOT EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[${v}]') AND type in (N'V'))
 BEGIN
-    DROP VIEW [dbo].[${v}];
+    EXEC('CREATE VIEW [dbo].[${v}] AS SELECT CAST(1 AS int) AS [GeciciKolon]');
 END;
 GO\n`;
     }
 
-    // Şimdi manifest sırasına göre tertemiz, %100 bağımsız stub gövdelerini ayağa kaldırıyoruz
-    for (const v of DB.views) {
-        if (STUBS[v]) {
-            script += `
-EXEC('${STUBS[v].replace(/'/g, "''").trim()}');
-GO\n`;
-        }
-    }
-
-    // Prosedürler için taslaklar
     for (const p of DB.procedures) {
-        if (!spMap[p]) {
-            script += `
-IF NOT EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[${p}]') AND type in (N'P', N'PC'))
+        script += `IF NOT EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[${p}]') AND type in (N'P', N'PC'))
 BEGIN
     EXEC('CREATE PROCEDURE [dbo].[${p}] AS BEGIN SET NOCOUNT ON; END');
 END;
 GO\n`;
-        }
     }
 
-    // =========================================================================
-    // ADIM 2: ASIL GÖVDELERİN YAZILMASI (Sadece Tabloları Var Olan DB'ler İçin Gerçekleşir)
-    // =========================================================================
+    // 2. ADIM: TAM GÖVDELERİ BASTIĞIMIZ ALAN (HEM İLK KURULUMDA HEM GÜNCELLEMEDE ÇALIŞIR)
     script += `\n/* ===================== 📊 ADIM 2: VIEW GÜNCELLEMELERİ (ALTER) ===================== */\n`;
     for (const v of DB.views) {
-        const def = viewMap[v];
-        if (def) {
-            // Eğer veritabanında asıl gövde şeması varsa script içine yaz ve derle
-            script += `
-BEGIN TRY
-    EXEC('${safeAlterView(def).replace(/'/g, "''").trim()}');
-END TRY
-BEGIN CATCH
-    PRINT 'ℹ️ [Uyarı] [dbo].[${v}] asıl gövdesi bağımlı tablolar henüz mevcut olmadığından derlenemedi, taslak korundu.';
-END CATCH;
-GO\n`;
-        } else {
-            script += `-- ℹ️ View [dbo].[${v}] yerel DB'de tanımlı gövdeye sahip olmadığından taslak şeması korundu.\nGO\n\n`;
-        }
+        // Öncelik yerel veritabanındaki kodda, eğer lokal boşsa MASTER_SCHEMAS içerisindeki tam dolu kod basılır!
+        const rawDef = viewMap[v] || MASTER_SCHEMAS.views[v];
+        script += safeAlterView(rawDef).trim() + '\nGO\n\n';
     }
 
     script += `\n/* ===================== ⚡ ADIM 3: STORED PROCEDURE GÜNCELLEMELERİ ===================== */\n`;
     for (const p of DB.procedures) {
-        const def = spMap[p];
-        if (def) {
-            script += safeAlterProc(def).trim() + '\nGO\n\n';
-        } else {
-            script += `-- ℹ️ Procedure [dbo].[${p}] yerel DB'de tanımlı gövdeye sahip olmadığından taslak şeması korundu.\nGO\n\n`;
-        }
+        const rawDef = spMap[p] || MASTER_SCHEMAS.procedures[p];
+        script += safeAlterProc(rawDef).trim() + '\nGO\n\n';
     }
 
-    // =========================================================================
-    // ADIM 4: HIGH-PERFORMANCE INDEXES
-    // =========================================================================
+    // 3. ADIM: HIGH PERFORMANCE INDEXES
     script += `\n/* ===================== 🛠️ ADIM 4: HIGH-PERFORMANCE INDEXES ===================== */\n`;
     for (const ix of DB.indexes) {
         script += buildIndex(ix);
     }
 
-    // Önbellek Temizleme Kapanışı
-    script += `
-PRINT '⚡ İşlem tamamlandı. Sorgu plan hafızası sıfırlanıyor...';
-DBCC FREEPROCCACHE;
-GO
-`;
+    script += `\nPRINT '⚡ Kurulum/Güncelleme başarıyla tamamlandı. Plan hafızası sıfırlanıyor...';\nDBCC FREEPROCCACHE;\nGO\n`;
 
+    // Dosyaya Yazma Aşaması
     const dir = path.join(process.cwd(), 'DB');
     if (!fs.existsSync(dir)) fs.mkdirSync(dir);
 
     fs.writeFileSync(path.join(dir, 'guncelleme.sql'), script, 'utf8');
-
-    console.log('✅ %100 TAM UYUMLU VE ZİNCİRLEME HATALARI ÇÖZÜLMÜŞ DB SCRIPTİ ÜRETİLDİ');
-    await sql.close();
+    console.log('✅ HEM İLK KURULUM HEM GÜNCELLEME UYUMLU %100 DOLU SQL SCRIPT_ÜRETİLDİ.');
+    
+    if (pool) await sql.close();
 }
 
-run().catch(err => {
-    console.error('❌ CRITICAL ERROR:', err.message);
-});
+run().catch(err => { console.error('❌ HATA:', err.message); });
