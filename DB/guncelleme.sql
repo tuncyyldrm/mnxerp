@@ -1,10 +1,58 @@
+-- ✨ Otomatik Üretilen Güvenli Güncelleme Scripti (20.06.2026 19:50:33)
+-- ⚠️ Manuel düzenleme yapmayın, 'npm run db-pack' ile güncelleyin.
+-- 🛡️ Dükkan veritabanlarında eksik olan yapılar için "Varlık Kontrolü (Stub)" eklenmiştir.
+
+-- ----------------------------------------------------
+-- 🛡️ ÖN HAZIRLIK: EKSİK NESNELERİ GÜVENLİCE ILK DEFA OLUŞTURMA
+-- ----------------------------------------------------
+
+IF NOT EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[V_CariAnalizRaporu]') AND type in (N'V'))
+BEGIN
+    EXEC('CREATE VIEW [dbo].[V_CariAnalizRaporu] AS SELECT 1 as TaslakKolon');
+END;
+GO
+IF NOT EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[vw_CariEkstreDetay]') AND type in (N'V'))
+BEGIN
+    EXEC('CREATE VIEW [dbo].[vw_CariEkstreDetay] AS SELECT 1 as TaslakKolon');
+END;
+GO
+IF NOT EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[vw_FaturaDetayRaporu]') AND type in (N'V'))
+BEGIN
+    EXEC('CREATE VIEW [dbo].[vw_FaturaDetayRaporu] AS SELECT 1 as TaslakKolon');
+END;
+GO
+IF NOT EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[vw_StokListesi]') AND type in (N'V'))
+BEGIN
+    EXEC('CREATE VIEW [dbo].[vw_StokListesi] AS SELECT 1 as TaslakKolon');
+END;
+GO
+IF NOT EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[sp_StokDetayGetir]') AND type in (N'P', N'PC'))
+BEGIN
+    EXEC('CREATE PROCEDURE [dbo].[sp_StokDetayGetir] AS BEGIN SET NOCOUNT ON; END');
+END;
+GO
+IF NOT EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[sp_StokDuzenle]') AND type in (N'P', N'PC'))
+BEGIN
+    EXEC('CREATE PROCEDURE [dbo].[sp_StokDuzenle] AS BEGIN SET NOCOUNT ON; END');
+END;
+GO
+IF NOT EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[sp_UrunHareketAnaliz]') AND type in (N'P', N'PC'))
+BEGIN
+    EXEC('CREATE PROCEDURE [dbo].[sp_UrunHareketAnaliz] AS BEGIN SET NOCOUNT ON; END');
+END;
+GO
+
+-- ----------------------------------------------------
+-- 📊 AŞAMA 1: VIEW GÜNCELLEMELERİ (ASIL GÖVDELER)
+-- ----------------------------------------------------
+
 -- ✨ Otomatik Üretilen Güncelleme Scripti (19.06.2026 23:49:42)
 -- ⚠️ Manuel düzenleme yapmayın, 'npm run db-pack' ile güncelleyin.
 
 -- ✨ Otomatik Üretilen Güncelleme Scripti (19.06.2026 22:19:41)
 -- ⚠️ Manuel düzenleme yapmayın, 'npm run db-pack' ile güncelleyin.
 
-CREATE OR ALTER VIEW [dbo].[V_CariAnalizRaporu] AS
+ALTER VIEW [dbo].[V_CariAnalizRaporu] AS
 SELECT 
     c.id,
     c.kodu,
@@ -48,7 +96,7 @@ FROM [dbo].[cari] c
 WHERE c.C_STATU = 0;
 GO
 
-CREATE OR ALTER VIEW [dbo].[vw_CariEkstreDetay] AS
+ALTER VIEW [dbo].[vw_CariEkstreDetay] AS
 SELECT 
     c.id AS CariID,
     c.kodu AS CariKodu,
@@ -72,7 +120,7 @@ INNER JOIN [dbo].[cari] c ON COALESCE(NULLIF(CAST(ik.id_name AS NVARCHAR(255)), 
 WHERE c.C_STATU = 0;
 GO
 
-CREATE OR ALTER VIEW [dbo].[vw_FaturaDetayRaporu] AS
+ALTER VIEW [dbo].[vw_FaturaDetayRaporu] AS
 SELECT 
     -- Fatura Üst Bilgileri
     ik.ikid AS IslemNo,
@@ -160,7 +208,7 @@ WHERE i.islemid IS NOT NULL
   );
 GO
 
-CREATE OR ALTER VIEW [dbo].[vw_StokListesi]
+ALTER VIEW [dbo].[vw_StokListesi]
 AS
 SELECT 
     s.urunkodu, s.urun, s.urunalt, s.ureticifirma, 
@@ -181,11 +229,15 @@ OUTER APPLY (
 ) AS bakiye;
 GO
 
+-- ----------------------------------------------------
+-- ⚡ AŞAMA 2: STORED PROCEDURE GÜNCELLEMELERİ (ASIL GÖVDELER)
+-- ----------------------------------------------------
+
 /* =========================================================
    2. TEK ÜRÜN DETAY PROSEDÜRÜ (VIEW BYPASS - DAHA HIZLI)
 ========================================================= */
 
-CREATE OR ALTER PROCEDURE dbo.sp_StokDetayGetir
+ALTER PROCEDURE dbo.sp_StokDetayGetir
     @UrunKodu NVARCHAR(100)
 AS
 BEGIN
@@ -223,7 +275,7 @@ BEGIN
 END
 GO
 
-CREATE OR ALTER PROCEDURE [dbo].[sp_StokDuzenle]
+ALTER PROCEDURE [dbo].[sp_StokDuzenle]
     @UrunKodu NVARCHAR(100),
     @UrunAd NVARCHAR(250),
     @Raf NVARCHAR(50),
@@ -253,7 +305,7 @@ GO
    3. HAREKET ANALİZİ (CLEAN + CPU OPTIMIZED)
 ========================================================= */
 
-CREATE OR ALTER PROCEDURE dbo.sp_UrunHareketAnaliz
+ALTER PROCEDURE dbo.sp_UrunHareketAnaliz
     @DetayKodu NVARCHAR(100)
 AS
 BEGIN
@@ -284,66 +336,84 @@ BEGIN
 END
 GO
 
+-- ----------------------------------------------------
+-- 🛠️ AŞAMA 3: INDEX OPTİMİZASYONLARI
+-- ----------------------------------------------------
+
 -- ⚡ Index: IX_IslemKaydi_Covering_Amor (Tablo: [dbo].[islemkaydı])
-IF EXISTS (SELECT * FROM sys.indexes WHERE name = 'IX_IslemKaydi_Covering_Amor' AND object_id = OBJECT_ID('[dbo].[islemkaydı]'))
+IF EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID('[dbo].[islemkaydı]') AND type in (N'U'))
 BEGIN
-    DROP INDEX [IX_IslemKaydi_Covering_Amor] ON [dbo].[islemkaydı];
+    IF EXISTS (SELECT * FROM sys.indexes WHERE name = 'IX_IslemKaydi_Covering_Amor' AND object_id = OBJECT_ID('[dbo].[islemkaydı]'))
+    BEGIN
+        DROP INDEX [IX_IslemKaydi_Covering_Amor] ON [dbo].[islemkaydı];
+    END;
+    CREATE NONCLUSTERED INDEX [IX_IslemKaydi_Covering_Amor] ON [dbo].[islemkaydı] (ikid ASC) INCLUDE (id_name,belgetarihi,belgesaati,faturanumarası,belgenumarası,islemtipi,BB_TL,AB_TL);
 END;
-GO
-CREATE NONCLUSTERED INDEX [IX_IslemKaydi_Covering_Amor] ON [dbo].[islemkaydı] (ikid ASC) INCLUDE (id_name,belgetarihi,belgesaati,faturanumarası,belgenumarası,islemtipi,BB_TL,AB_TL);
 GO
 
 -- ⚡ Index: IX_Islem_DetayKodu_Bakiye_Optimize (Tablo: [dbo].[islem])
-IF EXISTS (SELECT * FROM sys.indexes WHERE name = 'IX_Islem_DetayKodu_Bakiye_Optimize' AND object_id = OBJECT_ID('[dbo].[islem]'))
+IF EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID('[dbo].[islem]') AND type in (N'U'))
 BEGIN
-    DROP INDEX [IX_Islem_DetayKodu_Bakiye_Optimize] ON [dbo].[islem];
+    IF EXISTS (SELECT * FROM sys.indexes WHERE name = 'IX_Islem_DetayKodu_Bakiye_Optimize' AND object_id = OBJECT_ID('[dbo].[islem]'))
+    BEGIN
+        DROP INDEX [IX_Islem_DetayKodu_Bakiye_Optimize] ON [dbo].[islem];
+    END;
+    CREATE NONCLUSTERED INDEX [IX_Islem_DetayKodu_Bakiye_Optimize] ON [dbo].[islem] (detay_kodu ASC,I_DATE ASC,I_TIME ASC) INCLUDE (alısmiktar,satısmiktar,I_TYPE,birimfiyat,depo,ikid_bag);
 END;
-GO
-CREATE NONCLUSTERED INDEX [IX_Islem_DetayKodu_Bakiye_Optimize] ON [dbo].[islem] (detay_kodu ASC,I_DATE ASC,I_TIME ASC) INCLUDE (alısmiktar,satısmiktar,I_TYPE,birimfiyat,depo,ikid_bag);
 GO
 
 -- ⚡ Index: IX_Islem_IslemNumarasi_Covering (Tablo: [dbo].[islem])
-IF EXISTS (SELECT * FROM sys.indexes WHERE name = 'IX_Islem_IslemNumarasi_Covering' AND object_id = OBJECT_ID('[dbo].[islem]'))
+IF EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID('[dbo].[islem]') AND type in (N'U'))
 BEGIN
-    DROP INDEX [IX_Islem_IslemNumarasi_Covering] ON [dbo].[islem];
+    IF EXISTS (SELECT * FROM sys.indexes WHERE name = 'IX_Islem_IslemNumarasi_Covering' AND object_id = OBJECT_ID('[dbo].[islem]'))
+    BEGIN
+        DROP INDEX [IX_Islem_IslemNumarasi_Covering] ON [dbo].[islem];
+    END;
+    CREATE NONCLUSTERED INDEX [IX_Islem_IslemNumarasi_Covering] ON [dbo].[islem] (islemnumarası ASC) INCLUDE (islemid,detay,detay_kodu,birim,birimfiyat,kdvoranı,kdv,alısmiktar,satısmiktar,alıstutarı,satıstutarı,kasaid,bankaid,Cariid,net);
 END;
-GO
-CREATE NONCLUSTERED INDEX [IX_Islem_IslemNumarasi_Covering] ON [dbo].[islem] (islemnumarası ASC) INCLUDE (islemid,detay,detay_kodu,birim,birimfiyat,kdvoranı,kdv,alısmiktar,satısmiktar,alıstutarı,satıstutarı,kasaid,bankaid,Cariid,net);
 GO
 
 -- ⚡ Index: IX_Stok_Filtreleme_Master (Tablo: [dbo].[stok])
-IF EXISTS (SELECT * FROM sys.indexes WHERE name = 'IX_Stok_Filtreleme_Master' AND object_id = OBJECT_ID('[dbo].[stok]'))
+IF EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID('[dbo].[stok]') AND type in (N'U'))
 BEGIN
-    DROP INDEX [IX_Stok_Filtreleme_Master] ON [dbo].[stok];
+    IF EXISTS (SELECT * FROM sys.indexes WHERE name = 'IX_Stok_Filtreleme_Master' AND object_id = OBJECT_ID('[dbo].[stok]'))
+    BEGIN
+        DROP INDEX [IX_Stok_Filtreleme_Master] ON [dbo].[stok];
+    END;
+    CREATE NONCLUSTERED INDEX [IX_Stok_Filtreleme_Master] ON [dbo].[stok] (grubu ASC,kateGOri ASC,tipi ASC) INCLUDE (urunkodu,urun,fiyatı,STK_FULL,Raf);
 END;
-GO
-CREATE NONCLUSTERED INDEX [IX_Stok_Filtreleme_Master] ON [dbo].[stok] (grubu ASC,kateGOri ASC,tipi ASC) INCLUDE (urunkodu,urun,fiyatı,STK_FULL,Raf);
 GO
 
 -- ⚡ Index: IX_Stok_Urun_Arama (Tablo: [dbo].[stok])
-IF EXISTS (SELECT * FROM sys.indexes WHERE name = 'IX_Stok_Urun_Arama' AND object_id = OBJECT_ID('[dbo].[stok]'))
+IF EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID('[dbo].[stok]') AND type in (N'U'))
 BEGIN
-    DROP INDEX [IX_Stok_Urun_Arama] ON [dbo].[stok];
+    IF EXISTS (SELECT * FROM sys.indexes WHERE name = 'IX_Stok_Urun_Arama' AND object_id = OBJECT_ID('[dbo].[stok]'))
+    BEGIN
+        DROP INDEX [IX_Stok_Urun_Arama] ON [dbo].[stok];
+    END;
+    CREATE NONCLUSTERED INDEX [IX_Stok_Urun_Arama] ON [dbo].[stok] (urun ASC) INCLUDE (urunkodu,fiyatı,STK_FULL,Raf,grubu);
 END;
-GO
-CREATE NONCLUSTERED INDEX [IX_Stok_Urun_Arama] ON [dbo].[stok] (urun ASC) INCLUDE (urunkodu,fiyatı,STK_FULL,Raf,grubu);
 GO
 
 -- ⚡ Index: IX_Stok_B2B_Search_Optimize (Tablo: [dbo].[stok])
-IF EXISTS (SELECT * FROM sys.indexes WHERE name = 'IX_Stok_B2B_Search_Optimize' AND object_id = OBJECT_ID('[dbo].[stok]'))
+IF EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID('[dbo].[stok]') AND type in (N'U'))
 BEGIN
-    DROP INDEX [IX_Stok_B2B_Search_Optimize] ON [dbo].[stok];
+    IF EXISTS (SELECT * FROM sys.indexes WHERE name = 'IX_Stok_B2B_Search_Optimize' AND object_id = OBJECT_ID('[dbo].[stok]'))
+    BEGIN
+        DROP INDEX [IX_Stok_B2B_Search_Optimize] ON [dbo].[stok];
+    END;
+    CREATE NONCLUSTERED INDEX [IX_Stok_B2B_Search_Optimize] ON [dbo].[stok] (urunkodu ASC) INCLUDE (urun,urunalt,ureticifirma,grubu,kateGOri,tipi,Raf,fiyatı,OEM,STK_FULL,OEM_0,OEM_1,OEM_2,OEM_3,OEM_4);
 END;
-GO
-CREATE NONCLUSTERED INDEX [IX_Stok_B2B_Search_Optimize] ON [dbo].[stok] (urunkodu ASC) INCLUDE (urun,urunalt,ureticifirma,grubu,kateGOri,tipi,Raf,fiyatı,OEM,STK_FULL,OEM_0,OEM_1,OEM_2,OEM_3,OEM_4);
 GO
 
 -- ⚡ Index: IX_Stok_OEM_Search (Tablo: [dbo].[stok])
-IF EXISTS (SELECT * FROM sys.indexes WHERE name = 'IX_Stok_OEM_Search' AND object_id = OBJECT_ID('[dbo].[stok]'))
+IF EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID('[dbo].[stok]') AND type in (N'U'))
 BEGIN
-    DROP INDEX [IX_Stok_OEM_Search] ON [dbo].[stok];
+    IF EXISTS (SELECT * FROM sys.indexes WHERE name = 'IX_Stok_OEM_Search' AND object_id = OBJECT_ID('[dbo].[stok]'))
+    BEGIN
+        DROP INDEX [IX_Stok_OEM_Search] ON [dbo].[stok];
+    END;
+    CREATE NONCLUSTERED INDEX [IX_Stok_OEM_Search] ON [dbo].[stok] (OEM ASC) INCLUDE (urunkodu,urun);
 END;
-GO
-CREATE NONCLUSTERED INDEX [IX_Stok_OEM_Search] ON [dbo].[stok] (OEM ASC) INCLUDE (urunkodu,urun);
 GO
 
