@@ -66,7 +66,7 @@ SELECT
     COALESCE(NULLIF(CAST(ack.I_NOTE AS NVARCHAR(MAX)), ''), N'İçerik detayları için tıklayın') AS FaturaNotu,
     i.islemid AS SatirId,
     COALESCE(NULLIF(CAST(i.detay AS NVARCHAR(255)), ''), N'Tanımsız Satır/Hizmet/Virman') AS UrunAdi,
-    COALESCE(NULLIF(CAST(i.detay_kodu AS NVARCHAR(100)), '-') AS StokKodu,
+    COALESCE(NULLIF(CAST(i.detay_kodu AS NVARCHAR(100)), ''), '-') AS StokKodu, -- 🎯 HATA DÜZELTİLDİ: Eksik parantez kapatıldı!
     COALESCE(NULLIF(CAST(i.birim AS NVARCHAR(50)), ''), N'ADET') AS Birim,
     ISNULL(i.birimfiyat, 0) AS BirimFiyat, ISNULL(i.kdvoranı, 0) AS KdvOrani, ISNULL(i.kdv, 0) AS KdvTutari,        
     CASE WHEN ISNULL(i.alısmiktar, 0) <> 0 THEN ISNULL(i.alıstutarı, 0) / i.alısmiktar WHEN ISNULL(i.satısmiktar, 0) <> 0 THEN ISNULL(i.satıstutarı, 0) / i.satısmiktar ELSE ISNULL(i.birimfiyat, 0) END AS KdvDahilBirimFiyat,
@@ -102,7 +102,6 @@ OUTER APPLY (
 const DB = {
     views: ['vw_CariEkstreDetay', 'V_CariAnalizRaporu', 'vw_FaturaDetayRaporu', 'vw_StokListesi'],
     procedures: ['sp_StokDetayGetir', 'sp_StokDuzenle', 'sp_UrunHareketAnaliz'],
-    // 🛠️ HEAP TARAMALARI (NULL SCAN) VE ARTIŞ GÖSTEREN INDEXLER BURADA %100 COVERING DURUMA GETİRİLDİ
     indexes: [
         { name: 'IX_IslemKaydi_Covering_Amor', table: 'islemkaydı', cols: 'ikid', include: 'id_name,belgetarihi,belgesaati,faturanumarası,belgenumarası,islemtipi,BB_TL,AB_TL' },
         { name: 'IX_Islem_IslemNumarasi_Covering', table: 'islem', cols: 'islemnumarası', include: 'islemid,detay,detay_kodu,birim,birimfiyat,kdvoranı,kdv,alısmiktar,satısmiktar,alıstutarı,satıstutarı,kasaid,bankaid,Cariid,net' },
@@ -111,12 +110,9 @@ const DB = {
         { name: 'IX_Stok_Urun_Arama', table: 'stok', cols: 'urun', include: 'urunkodu,fiyatı,STK_FULL,Raf,grubu' },
         { name: 'IX_Stok_Filtreleme_Master', table: 'stok', cols: 'grubu, kategori, tipi', include: 'urunkodu,urun,fiyatı,STK_FULL,Raf' },
         { name: 'IX_Stok_OEM_Search', table: 'stok', cols: 'OEM', include: 'urunkodu,urun' },
-        
-        // 🎯 ERP Canlı Test Sonuçlarına Göre Eklenen / Optimize Edilen Kritik Yapılar:
-        { name: 'IX_CARI_STATU_ID', table: 'cari', cols: 'C_STATU', include: 'id, kodu, firma, email, sehir, BB_TL, AB_TL, ilkdate' }, // 61->73 Tırmanan Scan'i Bitiren Yapı
-        { name: 'IX_STOK_ARAMA_MASTER', table: 'stok', cols: 'urun', include: 'urunkodu, urunalt, ureticifirma, grubu, kategori, tipi, Raf, fiyatı, STK_FULL, OEM' } // 18->25 Tırmanan Scan'i Bitiren Yapı
+        { name: 'IX_CARI_STATU_ID', table: 'cari', cols: 'C_STATU', include: 'id, kodu, firma, email, sehir, BB_TL, AB_TL, ilkdate' },
+        { name: 'IX_STOK_ARAMA_MASTER', table: 'stok', cols: 'urun', include: 'urunkodu, urunalt, ureticifirma, grubu, kategori, tipi, Raf, fiyatı, STK_FULL, OEM' }
     ],
-    // 🛡️ Dükkanlardaki Düzensiz NULL (Heap Scan) Yapısını Kökten Yıkacak Clustered Index Yapılandırmaları
     clusteredKeys: [
         { name: 'PK_cari_id', table: 'cari', col: 'id' },
         { name: 'PK_kasa_id', table: 'kasa', col: 'kasaid' },
@@ -149,38 +145,33 @@ END;
 GO\n`;
 }
 
-// =========================================================================
-// SCRIPT YAPICI YARDIMCILARI (GÜNCELLENEN GÜVENLİ SÜRÜM)
-// =========================================================================
-
 function buildClusteredKey(pk) {
     return `
 IF EXISTS (SELECT 1 FROM sys.objects WHERE object_id = OBJECT_ID('dbo.${pk.table}') AND type = 'U')
 BEGIN
-    -- 1. Tablonun halihazırda HANGİ İSİMLE OLURSA OLSUN bir Primary Key'i var mı?
+    -- Tablonun adı ne olursa olsun halihazırda bir Primary Key'i var mı?
     IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE object_id = OBJECT_ID('dbo.${pk.table}') AND is_primary_key = 1)
     BEGIN
-        -- 2. Eğer PK yoksa ama bizim koyacağımız isim sistemde başka bir yerde çakışıyorsa, önce o çakışan ismi temizle
+        -- İsim çakışma koruması
         IF EXISTS (SELECT 1 FROM sys.objects WHERE name = '${pk.name}')
         BEGIN
-            -- İsim çakışmasını engellemek için geçici bir isim türet veya var olan constraint'i temizle
             EXEC('ALTER TABLE [dbo].[${pk.table}] ADD CONSTRAINT [${pk.name}_AUTO] PRIMARY KEY CLUSTERED ([${pk.col}] ASC)');
-            PRINT '✔️ İsim çakışması önlendi, Alternatif PK Enjekte Edildi: [dbo].[${pk.table}]';
+            PRINT '✔️ Isim cakismasi onlendi, Alternatif PK Enjekte Edildi: [dbo].[${pk.table}]';
         END
         ELSE
         BEGIN
-            -- Her şey temizse normal isimlendirmeyle oluştur
             ALTER TABLE [dbo].[${pk.table}] ADD CONSTRAINT [${pk.name}] PRIMARY KEY CLUSTERED ([${pk.col}] ASC);
             PRINT '✔️ Clustered PK Enjekte Edildi: [dbo].[${pk.table}] -> ${pk.name}';
         END
     END
     ELSE
     BEGIN
-        PRINT 'ℹ️ [dbo].[${pk.table}] tablosunda zaten bir Primary Key mevcut, yapı korunuyor.';
+        PRINT 'ℹ️ [dbo].[${pk.table}] tablosunda zaten bir Primary Key mevcut, yapi korunuyor.';
     END
 END;
 GO\n`;
 }
+
 // =========================================================================
 // ANA ÇALIŞTIRICI
 // =========================================================================
@@ -189,7 +180,6 @@ async function run() {
     let viewMap = {};
     let spMap = {};
 
-    // Dinamik Mod denemesi (Lokal DB varsa oradaki canlı kodları çekmeye çalışır)
     try {
         pool = await sql.connect(config);
         const viewRes = await pool.request().query("SELECT o.name, sm.definition FROM sys.objects o LEFT JOIN sys.sql_modules sm ON sm.object_id = o.object_id WHERE o.type='V'");
@@ -212,20 +202,14 @@ SET NOCOUNT ON;
 GO
 
 /* ===================== 🛡️ ADIM 1: STRUCTURAL CLUSTERED KEYS (HEAP CANAVARI ÖNLEYİCİ) ===================== */
--- Tablolarda Primary Key olmamasından kaynaklanan tüm NULL Table Scan yükünü tamamen yok eder.
 \n`;
 
-    // 0. ADIM: TABLOLARDAKİ HEAP DURUMUNU YIKACAK CLUSTERED ANAHTARLARI BAS
     for (const pk of DB.clusteredKeys) {
         script += buildClusteredKey(pk);
     }
 
-    script += `\n/* ===================== 🛡️ ADIM 2: DYNAMIC STUBS (İLK KURULUM DESTEĞİ) ===================== */
--- Hedef DB sıfırsa (İlk Kurulum) ALTER komutlarının patlamaması için hafif taslaklar oluşturulur.
--- Nesneler dükkanda zaten varsa bu adım pas geçilir, mevcut kodlar asla silinmez!
-\n`;
+    script += `\n/* ===================== 🛡️ ADIM 2: DYNAMIC STUBS (İLK KURULUM DESTEĞİ) ===================== */\n`;
 
-    // 1. ADIM: EĞER HEDEFTE NESNE YOKSA (İLK KURULUM) KÖR TASLAK ATILIR (BÖYCE ALTER GÖVDESİ PATLAMAZ)
     for (const v of DB.views) {
         script += `IF NOT EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[${v}]') AND type in (N'V'))
 BEGIN
@@ -242,10 +226,8 @@ END;
 GO\n`;
     }
 
-    // 2. ADIM: TAM GÖVDELERİ BASTIĞIMIZ ALAN (HEM İLK KURULUMDA HEM GÜNCELLEMEDE ÇALIŞIR)
     script += `\n/* ===================== 📊 ADIM 3: VIEW GÜNCELLEMELERİ (ALTER) ===================== */\n`;
     for (const v of DB.views) {
-        // Öncelik yerel veritabanındaki kodda, eğer lokal boşsa MASTER_SCHEMAS içerisindeki tam dolu kod basılır!
         const rawDef = viewMap[v] || MASTER_SCHEMAS.views[v];
         script += safeAlterView(rawDef).trim() + '\nGO\n\n';
     }
@@ -256,7 +238,6 @@ GO\n`;
         script += safeAlterProc(rawDef).trim() + '\nGO\n\n';
     }
 
-    // 3. ADIM: HIGH PERFORMANCE INDEXES
     script += `\n/* ===================== 🛠️ ADIM 5: HIGH-PERFORMANCE INDEXES ===================== */\n`;
     for (const ix of DB.indexes) {
         script += buildIndex(ix);
@@ -264,7 +245,6 @@ GO\n`;
 
     script += `\nPRINT '⚡ Kurulum/Güncelleme başarıyla tamamlandı. Plan hafızası sıfırlanıyor...';\nDBCC FREEPROCCACHE;\nGO\n`;
 
-    // Dosyaya Yazma Aşaması
     const dir = path.join(process.cwd(), 'DB');
     if (!fs.existsSync(dir)) fs.mkdirSync(dir);
 
