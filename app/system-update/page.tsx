@@ -7,79 +7,83 @@ function SystemUpdateContent() {
   const searchParams = useSearchParams();
   const key = searchParams.get('key');
   const [status, setStatus] = useState<'loading' | 'success' | 'error'>('loading');
-  const [currentStep, setCurrentStep] = useState('Sistem güncellemesi başlatılıyor...');
-  const [details, setDetails] = useState<{ git?: string; sql?: string }>({});
-  const [errorMessage, setErrorMessage] = useState('');
+  const [progress, setProgress] = useState(0);
+  const [logs, setLogs] = useState<string[]>([]);
 
   useEffect(() => {
     if (!key) {
       setStatus('error');
-      setErrorMessage('Geçersiz istek: Güvenlik anahtarı (key) eksik!');
+      setLogs(['Geçersiz istek: Güvenlik anahtarı (key) eksik!']);
       return;
     }
 
-    // Tek API'ye istek atıyoruz
-    fetch(`/api/system-sync?key=${key}`)
-      .then(async (res) => {
-        const data = await res.json();
-        if (res.ok) {
-          setStatus('success');
-          setCurrentStep('Sistem Tamamen Güncel!');
-          setDetails({
-            git: data.gitStatus,
-            sql: data.sqlStatus
-          });
-        } else {
-          setStatus('error');
-          setErrorMessage(data.details ? `${data.error} Detay: ${data.details}` : (data.error || 'Güncelleme başarısız.'));
-          setDetails({ git: data.gitStatus });
+    // Server-Sent Events (SSE) bağlantısını başlatıyoruz
+    const eventSource = new EventSource(`/api/system-sync?key=${key}`);
+
+    eventSource.onmessage = (event) => {
+      try {
+        const data = JSON.parse(event.data);
+        setStatus(data.status);
+        setProgress(data.progress);
+        
+        // Gelen canlı mesajı log listesinin en üstüne ekle
+        setLogs((prevLogs) => [data.message, ...prevLogs]);
+
+        if (data.status === 'success' || data.status === 'error') {
+          eventSource.close(); // İşlem bittiyse bağlantıyı kapat
         }
-      })
-      .catch(() => {
+      } catch (err) {
         setStatus('error');
-        setErrorMessage('Sunucu zaman aşımına uğradı veya bağlantı koptu.');
-      });
+        setLogs(['Canlı veri akışı çözümlenemedi.']);
+        eventSource.close();
+      }
+    };
+
+    eventSource.onerror = () => {
+      setStatus('error');
+      setLogs(['Sunucuyla canlı bağlantı koptu veya zaman aşımı oluştu. Terminalden komut kilitlenmiş olabilir.']);
+      eventSource.close();
+    };
+
+    return () => {
+      eventSource.close();
+    };
   }, [key]);
 
   return (
     <div style={styles.container}>
       <div style={styles.card}>
-        {status === 'loading' && (
-          <>
-            <div style={styles.spinner}></div>
-            <h2 style={styles.textLoading}>MNX ERP Güncelleniyor</h2>
-            <p style={styles.subText}>{currentStep}</p>
-            <p style={styles.infoText}>Lütfen işlem bitene kadar tarayıcıyı veya AnyDesk'i kapatmayın.</p>
-          </>
-        )}
+        <h2 style={styles.title}>MNX ERP Sistem Otomasyonu</h2>
+        
+        {/* İlerleme Çubuğu */}
+        <div style={styles.progressContainer}>
+          <div style={{ ...styles.progressBar, width: `${progress}%`, backgroundColor: status === 'error' ? '#c0392b' : (status === 'success' ? '#27ae60' : '#e67e22') }}></div>
+        </div>
+        <div style={styles.progressText}>İlerleme: %{progress}</div>
+
+        {/* Canlı Durum İkonları */}
+        <div style={styles.statusSection}>
+          {status === 'loading' && <div style={styles.spinner}></div>}
+          {status === 'success' && <div style={styles.iconSuccess}>✓ Sonuç: Başarılı</div>}
+          {status === 'error' && <div style={styles.iconError}>✕ Sonuç: Başarısız</div>}
+        </div>
+
+        {/* Canlı Log Ekranı */}
+        <div style={styles.logContainer}>
+          <div style={styles.logHeader}>Canlı İşlem Raporu:</div>
+          <div style={styles.logBox}>
+            {logs.map((log, index) => (
+              <div key={index} style={{ ...styles.logLine, color: index === 0 ? (status === 'error' ? '#ff7675' : '#ffeaa7') : '#b2bec3', fontWeight: index === 0 ? 'bold' : 'normal' }}>
+                {log}
+              </div>
+            ))}
+          </div>
+        </div>
 
         {status === 'success' && (
-          <>
-            <div style={styles.iconSuccess}>✓</div>
-            <h2 style={styles.textSuccess}>Sistem Güncellendi</h2>
-            
-            <div style={styles.reportBox}>
-              <p><strong>💾 Kod Durumu:</strong> {details.git}</p>
-              <p><strong>🗄️ Veritabanı:</strong> {details.sql}</p>
-            </div>
-
-            <button onClick={() => window.location.href = '/'} style={styles.button}>
-              Paneli Başlat
-            </button>
-          </>
-        )}
-
-        {status === 'error' && (
-          <>
-            <div style={styles.iconError}>✕</div>
-            <h2 style={styles.textError}>Güncelleme Yarıda Kaldı</h2>
-            <p style={styles.errorText}>{errorMessage}</p>
-            {details.git && (
-              <div style={styles.reportBox}>
-                <p><strong>💾 En Son Git Durumu:</strong> {details.git}</p>
-              </div>
-            )}
-          </>
+          <button onClick={() => window.location.href = '/'} style={styles.button}>
+            Ana Panele Git
+          </button>
         )}
       </div>
     </div>
@@ -105,49 +109,58 @@ const styles = {
   },
   card: {
     backgroundColor: '#fff',
-    padding: '40px',
+    padding: '30px',
     borderRadius: '12px',
-    boxShadow: '0 4px 20px rgba(0,0,0,0.08)',
-    textAlign: 'center' as const,
-    maxWidth: '500px',
+    boxShadow: '0 4px 20px rgba(0,0,0,0.1)',
+    maxWidth: '550px',
     width: '100%',
+    textAlign: 'center' as const,
   },
+  title: { color: '#2c3e50', fontSize: '20px', marginBottom: '20px' },
+  progressContainer: {
+    backgroundColor: '#e9ecef',
+    borderRadius: '10px',
+    height: '12px',
+    width: '100%',
+    overflow: 'hidden',
+    marginBottom: '8px',
+  },
+  progressBar: {
+    height: '100%',
+    transition: 'width 0.4s ease-in-out',
+  },
+  progressText: { fontSize: '13px', fontWeight: 'bold', color: '#7f8c8d', marginBottom: '20px' },
+  statusSection: { height: '60px', display: 'flex', justifyContent: 'center', alignItems: 'center', marginBottom: '15px' },
   spinner: {
-    width: '50px',
-    height: '50px',
-    border: '5px solid #f3f3f3',
-    borderTop: '5px solid #e67e22', // Dikkat çekici turuncu spinner
+    width: '35px',
+    height: '35px',
+    border: '4px solid #f3f3f3',
+    borderTop: '4px solid #e67e22',
     borderRadius: '50%',
-    margin: '0 auto 20px',
     animation: 'spin 1s linear infinite',
   },
-  textLoading: { color: '#2c3e50', marginBottom: '10px' },
-  textSuccess: { color: '#27ae60', marginBottom: '10px' },
-  textError: { color: '#c0392b', marginBottom: '10px' },
-  subText: { color: '#e67e22', fontSize: '15px', fontWeight: 'bold', marginBottom: '10px' },
-  infoText: { color: '#7f8c8d', fontSize: '13px', marginBottom: '20px' },
-  errorText: { color: '#c0392b', fontSize: '14px', marginBottom: '20px', fontWeight: '500', wordBreak: 'break-word' as const },
-  reportBox: {
-    backgroundColor: '#f8f9fa',
-    border: '1px solid #e9ecef',
-    padding: '15px',
+  iconSuccess: { color: '#27ae60', fontWeight: 'bold', fontSize: '18px' },
+  iconError: { color: '#c0392b', fontWeight: 'bold', fontSize: '18px' },
+  logContainer: { textAlign: 'left' as const, marginBottom: '20px' },
+  logHeader: { fontSize: '13px', fontWeight: 'bold', color: '#2c3e50', marginBottom: '6px' },
+  logBox: {
+    backgroundColor: '#2d3436',
+    padding: '12px',
     borderRadius: '8px',
-    textAlign: 'left' as const,
-    fontSize: '13px',
-    color: '#495057',
-    marginBottom: '20px',
-    lineHeight: '1.6'
+    height: '180px',
+    overflowY: 'auto' as const,
+    boxShadow: 'inset 0 2px 8px rgba(0,0,0,0.2)',
   },
-  iconSuccess: { fontSize: '50px', color: '#27ae60', marginBottom: '10px' },
-  iconError: { fontSize: '50px', color: '#c0392b', marginBottom: '10px' },
+  logLine: { fontSize: '12px', lineHeight: '1.5', marginBottom: '6px', borderBottom: '1px solid #3d4648', paddingBottom: '4px' },
   button: {
-    backgroundColor: '#2ecc71',
+    backgroundColor: '#27ae60',
     color: '#fff',
     border: 'none',
-    padding: '12px 25px',
+    padding: '12px 30px',
     borderRadius: '6px',
     cursor: 'pointer',
     fontSize: '14px',
-    fontWeight: 'bold'
+    fontWeight: 'bold',
+    width: '100%',
   },
 };
