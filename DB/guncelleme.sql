@@ -1,13 +1,50 @@
 /* =========================================================================
     ✨ %100 SIFIR KURULUM VE GÜNCELLEME UYUMLU OTOMATİK ÜRETİLEN SCRIPT
-    Generated: 21.06.2026 00:46:01
+    Generated: 21.06.2026 01:01:47
     🛡️ Akıllı Dinamik Taslak (Dyna-Stub) Mimarisi & Index Koruması Aktiftir.
 ========================================================================= */
 
 SET NOCOUNT ON;
 GO
 
-/* ===================== 🛡️ ADIM 1: DYNAMIC STUBS (İLK KURULUM DESTEĞİ) ===================== */
+/* ===================== 🛡️ ADIM 1: STRUCTURAL CLUSTERED KEYS (HEAP CANAVARI ÖNLEYİCİ) ===================== */
+-- Tablolarda Primary Key olmamasından kaynaklanan tüm NULL Table Scan yükünü tamamen yok eder.
+
+
+IF EXISTS (SELECT 1 FROM sys.objects WHERE object_id = OBJECT_ID('dbo.cari') AND type = 'U')
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM sys.key_constraints WHERE type = 'PK' AND object_id = OBJECT_ID('dbo.cari'))
+    BEGIN
+        -- Tablo yığın (Heap) durumundaysa Primary Key atılarak fiziksel olarak sıralanır ve Table Scan engellenir.
+        ALTER TABLE [dbo].[cari] ADD CONSTRAINT [PK_cari_id] PRIMARY KEY CLUSTERED ([id] ASC);
+        PRINT '✔️ Clustered PK Enjekte Edildi: [dbo].[cari] -> PK_cari_id';
+    END;
+END;
+GO
+
+IF EXISTS (SELECT 1 FROM sys.objects WHERE object_id = OBJECT_ID('dbo.kasa') AND type = 'U')
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM sys.key_constraints WHERE type = 'PK' AND object_id = OBJECT_ID('dbo.kasa'))
+    BEGIN
+        -- Tablo yığın (Heap) durumundaysa Primary Key atılarak fiziksel olarak sıralanır ve Table Scan engellenir.
+        ALTER TABLE [dbo].[kasa] ADD CONSTRAINT [PK_kasa_id] PRIMARY KEY CLUSTERED ([kasaid] ASC);
+        PRINT '✔️ Clustered PK Enjekte Edildi: [dbo].[kasa] -> PK_kasa_id';
+    END;
+END;
+GO
+
+IF EXISTS (SELECT 1 FROM sys.objects WHERE object_id = OBJECT_ID('dbo.banka') AND type = 'U')
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM sys.key_constraints WHERE type = 'PK' AND object_id = OBJECT_ID('dbo.banka'))
+    BEGIN
+        -- Tablo yığın (Heap) durumundaysa Primary Key atılarak fiziksel olarak sıralanır ve Table Scan engellenir.
+        ALTER TABLE [dbo].[banka] ADD CONSTRAINT [PK_banka_id] PRIMARY KEY CLUSTERED ([id] ASC);
+        PRINT '✔️ Clustered PK Enjekte Edildi: [dbo].[banka] -> PK_banka_id';
+    END;
+END;
+GO
+
+/* ===================== 🛡️ ADIM 2: DYNAMIC STUBS (İLK KURULUM DESTEĞİ) ===================== */
 -- Hedef DB sıfırsa (İlk Kurulum) ALTER komutlarının patlamaması için hafif taslaklar oluşturulur.
 -- Nesneler dükkanda zaten varsa bu adım pas geçilir, mevcut kodlar asla silinmez!
 
@@ -47,6 +84,7 @@ BEGIN
 END;
 GO
 
+/* ===================== 📊 ADIM 3: VIEW GÜNCELLEMELERİ (ALTER) ===================== */
 /* ===================== 📊 ADIM 2: VIEW GÜNCELLEMELERİ (ALTER) ===================== */
 /* ===================== 📊 ADIM 2: VIEW GÜNCELLEMELERİ (ALTER) ===================== */
 -- ----------------------------------------------------
@@ -217,6 +255,7 @@ OUTER APPLY (
 GO
 
 
+/* ===================== ⚡ ADIM 4: STORED PROCEDURE GÜNCELLEMELERİ ===================== */
 /* ===================== ⚡ ADIM 3: STORED PROCEDURE GÜNCELLEMELERİ ===================== */
 /* ===================== ⚡ ADIM 3: STORED PROCEDURE GÜNCELLEMELERİ ===================== */
 -- ----------------------------------------------------
@@ -287,7 +326,7 @@ END
 GO
 
 
-/* ===================== 🛠️ ADIM 4: HIGH-PERFORMANCE INDEXES ===================== */
+/* ===================== 🛠️ ADIM 5: HIGH-PERFORMANCE INDEXES ===================== */
 
 IF EXISTS (SELECT 1 FROM sys.objects WHERE object_id = OBJECT_ID('dbo.islemkaydı') AND type = 'U')
 BEGIN
@@ -356,6 +395,26 @@ BEGIN
         DROP INDEX [IX_Stok_OEM_Search] ON dbo.stok;
     END;
     CREATE NONCLUSTERED INDEX [IX_Stok_OEM_Search] ON dbo.stok (OEM) INCLUDE (urunkodu,urun);
+END;
+GO
+
+IF EXISTS (SELECT 1 FROM sys.objects WHERE object_id = OBJECT_ID('dbo.cari') AND type = 'U')
+BEGIN
+    IF EXISTS (SELECT 1 FROM sys.indexes WHERE name='IX_CARI_STATU_ID' AND object_id = OBJECT_ID('dbo.cari'))
+    BEGIN
+        DROP INDEX [IX_CARI_STATU_ID] ON dbo.cari;
+    END;
+    CREATE NONCLUSTERED INDEX [IX_CARI_STATU_ID] ON dbo.cari (C_STATU) INCLUDE (id, kodu, firma, email, sehir, BB_TL, AB_TL, ilkdate);
+END;
+GO
+
+IF EXISTS (SELECT 1 FROM sys.objects WHERE object_id = OBJECT_ID('dbo.stok') AND type = 'U')
+BEGIN
+    IF EXISTS (SELECT 1 FROM sys.indexes WHERE name='IX_STOK_ARAMA_MASTER' AND object_id = OBJECT_ID('dbo.stok'))
+    BEGIN
+        DROP INDEX [IX_STOK_ARAMA_MASTER] ON dbo.stok;
+    END;
+    CREATE NONCLUSTERED INDEX [IX_STOK_ARAMA_MASTER] ON dbo.stok (urun) INCLUDE (urunkodu, urunalt, ureticifirma, grubu, kategori, tipi, Raf, fiyatı, STK_FULL, OEM);
 END;
 GO
 
