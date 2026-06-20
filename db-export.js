@@ -11,8 +11,6 @@ const config = {
     options: { encrypt: false, trustServerCertificate: true }
 };
 
-// 🎯 LİSTE: Buraya istediğin gibi yeni view, procedure veya index ekleyebilirsin. 
-// Akıllı altyapı sayesinde sıralama veya kolon bağımlılıkları otomatik çözülür.
 const BENIM_NESNELERIM = {
     views: [
         'vw_CariEkstreDetay',    // Önce bağımsız ana ekstre görünümü kurulmalı
@@ -38,7 +36,7 @@ const BENIM_NESNELERIM = {
 
 async function exportSchema() {
     try {
-        console.log('🔌 Kendi SQL Server\'ıma bağlanılıyor...');
+        console.log('🔌 Kendi SQL Server\'ımıza bağlanılıyor...');
         const pool = await sql.connect(config);
         
         let finalSqlScript = `-- ✨ Otomatik Üretilen Güvenli Güncelleme Scripti (${new Date().toLocaleString('tr-TR')})\n`;
@@ -72,49 +70,39 @@ async function exportSchema() {
             ORDER BY ViewName, c.column_id;
         `);
 
-        // Kolon verilerini View gruplarına göre haritala
         const viewColumnsMap = {};
         columnsResult.recordset.forEach(col => {
             if (!viewColumnsMap[col.ViewName]) viewColumnsMap[col.ViewName] = [];
-            
             let typeStr = col.DataType;
             if (col.Length) typeStr += `(${col.Length})`;
-            
             viewColumnsMap[col.ViewName].push(`CAST(NULL AS ${typeStr}) AS [${col.ColumnName}]`);
         });
 
-        // Script Ön Hazırlık Alanı
         finalSqlScript += `-- ----------------------------------------------------\n`;
         finalSqlScript += `-- 🛡️ ÖN HAZIRLIK: EKSİK NESNELERİ AKILLI TASLAKLARLA ILK DEFA OLUŞTURMA\n`;
         finalSqlScript += `-- ----------------------------------------------------\n\n`;
 
-        // 🚀 Her View için lokaldeki şemayı birebir taklit eden taslak (Stub) oluşturma
         BENIM_NESNELERIM.views.forEach(viewName => {
             finalSqlScript += `IF NOT EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[${viewName}]') AND type in (N'V'))\n`;
             finalSqlScript += `BEGIN\n`;
-            
             const cols = viewColumnsMap[viewName];
             if (cols && cols.length > 0) {
-                // Görünüm lokaldeki sütunlarının tipleriyle birebir sahte select olarak doğar!
                 const stubSelect = `SELECT ${cols.join(', ')}`;
-                // SQL Server tırnak kaçış hatası vermesin diye tek tırnakları dubleliyoruz
                 const safeStubSelect = stubSelect.replace(/'/g, "''");
                 finalSqlScript += `    EXEC('CREATE VIEW [dbo].[${viewName}] AS ${safeStubSelect}');\n`;
             } else {
                 finalSqlScript += `    EXEC('CREATE VIEW [dbo].[${viewName}] AS SELECT 1 as TaslakKolon');\n`;
             }
-            
             finalSqlScript += `END;\nGO\n\n`;
         });
 
-        // Olmayan SP'ler için standart boş taslak oluştur
         BENIM_NESNELERIM.procedures.forEach(spName => {
             finalSqlScript += `IF NOT EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[${spName}]') AND type in (N'P', N'PC'))\n`;
             finalSqlScript += `BEGIN\n    EXEC('CREATE PROCEDURE [dbo].[${spName}] AS BEGIN SET NOCOUNT ON; END');\nEND;\nGO\n`;
         });
         finalSqlScript += `\n`;
 
-        // ---- 1. ADIM: VIEW'LARI ÇEK (SIRALAMA KORUMALI) ----
+        // ---- 1. ADIM: VIEW'LARI ÇEK ----
         if (BENIM_NESNELERIM.views.length > 0) {
             console.log('🔍 View gövdeleri çekiliyor...');
             const viewResult = await pool.request().query(`
@@ -128,11 +116,8 @@ async function exportSchema() {
             finalSqlScript += `-- ----------------------------------------------------\n\n`;
             
             const viewMap = {};
-            viewResult.recordset.forEach(row => {
-                viewMap[row.name] = row.definition;
-            });
+            viewResult.recordset.forEach(row => { viewMap[row.name] = row.definition; });
 
-            // SQL Server'dan gelen karmaşık sıralamayı yoksayıp BENIM_NESNELERIM dizisindeki sırayı koruyoruz
             BENIM_NESNELERIM.views.forEach(viewName => {
                 const rawDef = viewMap[viewName];
                 if (rawDef) {
@@ -155,9 +140,7 @@ async function exportSchema() {
             finalSqlScript += `-- ----------------------------------------------------\n\n`;
 
             const spMap = {};
-            spResult.recordset.forEach(row => {
-                spMap[row.name] = row.definition;
-            });
+            spResult.recordset.forEach(row => { spMap[row.name] = row.definition; });
 
             BENIM_NESNELERIM.procedures.forEach(spName => {
                 const rawDef = spMap[spName];
@@ -169,7 +152,7 @@ async function exportSchema() {
             });
         }
 
-        // ---- 3. ADIM: DİNAMİK INDEX SCRIPTINI OLUŞTUR ----
+        // ---- 3. ADIM: DİNAMİK INDEX SCRIPTINI OLUŞTUR (GÜVENLİ FİLTERELİ) ----
         if (BENIM_NESNELERIM.indexes.length > 0) {
             console.log('🔍 Index yapıları analiz ediliyor...');
             
@@ -178,16 +161,23 @@ async function exportSchema() {
                     i.name AS IndexName,
                     OBJECT_SCHEMA_NAME(i.object_id) AS SchemaName,
                     OBJECT_NAME(i.object_id) AS TableName,
+                    -- Key Kolonları
                     STUFF((SELECT ',' + c.name + CASE WHEN ic.is_descending_key = 1 THEN ' DESC' ELSE ' ASC' END
                            FROM sys.index_columns ic 
                            JOIN sys.columns c ON ic.object_id = c.object_id AND ic.column_id = c.column_id
                            WHERE ic.object_id = i.object_id AND ic.index_id = i.index_id AND ic.is_included_column = 0
                            ORDER BY ic.key_ordinal
                            FOR XML PATH('')), 1, 1, '') AS KeyColumns,
+                    -- Güvenli Include Kolonları (Key listesindekileri otomatik eler!)
                     STUFF((SELECT ',' + c.name
                            FROM sys.index_columns ic 
                            JOIN sys.columns c ON ic.object_id = c.object_id AND ic.column_id = c.column_id
-                           WHERE ic.object_id = i.object_id AND i.index_id = i.index_id AND ic.is_included_column = 1
+                           WHERE ic.object_id = i.object_id AND ic.index_id = i.index_id AND ic.is_included_column = 1
+                             AND ic.column_id NOT IN (
+                                 SELECT k.column_id 
+                                 FROM sys.index_columns k 
+                                 WHERE k.object_id = i.object_id AND k.index_id = i.index_id AND k.is_included_column = 0
+                             )
                            ORDER BY ic.index_column_id
                            FOR XML PATH('')), 1, 1, '') AS IncludeColumns
                 FROM sys.indexes i
