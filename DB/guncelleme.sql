@@ -1,6 +1,6 @@
 /* =========================================================================
     ✨ OTOMATİK ÜRETİLEN GÜVENLİ KURULUM VE GÜNCELLEME SCRIPTİ
-    Generated: 21.06.2026 00:24:03
+    Generated: 21.06.2026 00:24:44
     🛡️ Taslak Mimari & Optimize INCLUDE İndeksleri Aktiftir.
 ========================================================================= */
 
