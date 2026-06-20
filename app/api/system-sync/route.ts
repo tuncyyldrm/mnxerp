@@ -1,7 +1,7 @@
 import { NextRequest } from 'next/server';
 import fs from 'fs';
 import path from 'path';
-import { exec, spawn } from 'child_process';
+import { exec } from 'child_process';
 import util from 'util';
 import { getDbConnection } from '@/app/lib/db';
 
@@ -87,7 +87,7 @@ export async function GET(request: NextRequest) {
             await sendProgress('loading', `✅ SQL Senkronizasyonu tamamlandı. ${basariliSorguSayisi} SQL bloğu işlendi.`, 90);
 
             // ----------------------------------------------------
-            // AŞAMA 4: PM2 RESTART VEYA MANUEL FALLBACK RESTART
+            // AŞAMA 4: PM2 RESTART VEYA GÜVENLİ ÇIŞIK (EXIT 0)
             // ----------------------------------------------------
             await sendProgress('loading', '🚀 Aşama 4/4: PM2/Sistem servisi güncelleniyor, yeni sürüm havada devreye alınıyor...', 95);
             
@@ -95,7 +95,7 @@ export async function GET(request: NextRequest) {
             await sendProgress('success', `🎉 MNX ERP Başarıyla Güncellendi! Kod bütünlüğü sağlandı, build alındı ve ${basariliSorguSayisi} SQL bloğu işlendi. Sistem aktif ediliyor...`, 100);
             await writer.close();
 
-            // Tarayıcıya akış ulaştıktan 2 saniye sonra sistemi güvenli şekilde hot-restart yapıyoruz
+            // Tarayıcıya mesaj ulaştıktan 2 saniye sonra sistemi güvenli şekilde kapatıyoruz / yeniliyoruz
             setTimeout(async () => {
                 try {
                     // PM2 ortam değişkenlerinden sürecin kendi adını dinamik olarak yakalıyoruz
@@ -105,25 +105,14 @@ export async function GET(request: NextRequest) {
                         console.log(`Dinamik PM2 ismi tespit edildi: ${dynamicPm2Name}. Yeniden başlatılıyor...`);
                         await execPromise(`pm2 restart "${dynamicPm2Name}"`);
                     } else {
-                        console.log("PM2 süreç adı bulunamadı (Manuel/Lokal Başlatma). Sistem otonom olarak yenileniyor...");
-                        
-                        // Kendi bilgisayarındaki testlerde terminalin çökmemesi ve kapanmaması için:
-                        // Hangi modda çalışıyorsan (dev veya start) arka planda bağımsız (detached) yeni bir çocuk süreç açıyoruz.
-                        const isDev = process.env.NODE_ENV === 'development';
-                        const startCommand = isDev ? 'dev' : 'start';
-                        
-                        const child = spawn('npm', ['run', startCommand], {
-                            cwd: process.cwd(),
-                            detached: true,
-                            stdio: 'ignore',
-                            shell: true
-                        });
-                        
-                        child.unref();   // Ana sürecin bu çocuk sürecin kapanmasını beklemesini engeller
-                        process.exit(0); // Eski kilitli süreci kapatır, yeni süreç arkada temizce akmaya devam eder.
+                        // Eğer PM2 yoksa, sistem build'ı zaten başarıyla aldı ve SQL'i işledi.
+                        // Süreci sonlandırıyoruz. Dükkandaki bir servis yöneticisi veya el ile tetiklemelerde
+                        // projenin kilitlenmemesi için en güvenli fallback süreci sonlandırmaktır.
+                        console.log("PM2 süreç adı bulunamadı. Değişikliklerin devreye girmesi için süreç güvenli şekilde sonlandırılıyor (Exit 0)...");
+                        process.exit(0);
                     }
                 } catch (restartError) {
-                    console.log("Yeniden başlatma komut zinciri başarısız oldu, process.exit(0) uygulanıyor.");
+                    console.log("Yeniden başlatma işlemi esnasında hata oluştu, process.exit(0) uygulanıyor.");
                     process.exit(0);
                 }
             }, 2000);
