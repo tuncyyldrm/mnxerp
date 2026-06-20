@@ -1,6 +1,6 @@
 /* =========================================================================
     ✨ %100 SIFIR KURULUM VE GÜNCELLEME UYUMLU OTOMATİK ÜRETİLEN SCRIPT
-    Generated: 21.06.2026 01:07:18
+    Generated: 21.06.2026 01:09:19
     🛡️ Akıllı Dinamik Taslak (Dyna-Stub) Mimarisi & Index Koruması Aktiftir.
 ========================================================================= */
 
@@ -121,6 +121,7 @@ GO
 
 /* ===================== 📊 ADIM 3: VIEW GÜNCELLEMELERİ (ALTER) ===================== */
 /* ===================== 📊 ADIM 3: VIEW GÜNCELLEMELERİ (ALTER) ===================== */
+/* ===================== 📊 ADIM 3: VIEW GÜNCELLEMELERİ (ALTER) ===================== */
 ALTER VIEW [dbo].[vw_CariEkstreDetay] AS
 SELECT 
     c.id AS CariID,
@@ -167,6 +168,7 @@ ALTER VIEW [dbo].[vw_StokListesi] AS SELECT CAST(1 AS int) AS [GeciciKolon]
 GO
 
 
+/* ===================== ⚡ ADIM 4: STORED PROCEDURE GÜNCELLEMELERİ ===================== */
 /* ===================== ⚡ ADIM 4: STORED PROCEDURE GÜNCELLEMELERİ ===================== */
 ALTER PROCEDURE [dbo].[sp_StokDetayGetir] AS BEGIN SET NOCOUNT ON; END
 GO
