@@ -1,0 +1,377 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<ActiveReportsLayout 
+	GUIDLIB="{10368337-728C-4B6B-9639-81CDD2F27E82}" GUIDREP="{53E0EDDB-9717-4189-B6E5-EF4D3556A6EA}" 
+	LICENSE="10000000"
+	PrintWidth="11115"
+	DocumentName="ONELEE REPORT"
+	TOCWidth="1800"
+	ScriptLang="VBScript"
+>
+<Watermark></Watermark>
+<PageSettings></PageSettings>
+<StyleSheet>
+	<Style Name="Normal"
+	Value="font-family: &apos;Arial&apos;; font-style: normal; font-variant: inherit; font-weight: normal; font-size: 10pt; font-size-adjust: inherit; font-stretch: inherit; color: rgb(0,0,0); background-color: rgb(255,255,255); background-image: inherit; background-repeat: inherit; background-attachment: inherit; background-x-position: inherit; background-y-position: inherit; opacity: inherit; word-spacing: inherit; letter-spacing: inherit; text-decoration: none; vertical-align: inherit; text-transform: inherit; text-align: inherit; text-indent: inherit; unicode-bidi: inherit; line-height: inherit; white-space: inherit; ddo-can-grow: inherit; ddo-can-shrink: inherit; ddo-char-set: 0; "
+	/>
+	<Style Name="Heading1"
+	Value="font-family: &apos;inherit&apos;; font-style: inherit; font-variant: inherit; font-weight: bold; font-size: 16pt; font-size-adjust: inherit; font-stretch: inherit; "
+	/>
+	<Style Name="Heading2"
+	Value="font-family: &apos;Times New Roman&apos;; font-style: italic; font-variant: inherit; font-weight: bold; font-size: 14pt; font-size-adjust: inherit; font-stretch: inherit; "
+	/>
+	<Style Name="Heading3"
+	Value="font-family: &apos;inherit&apos;; font-style: inherit; font-variant: inherit; font-weight: bold; font-size: 13pt; font-size-adjust: inherit; font-stretch: inherit; "
+	/>
+	<Style Name="Heading4"
+	/>
+</StyleSheet>
+<Sections>
+	<Section Type="PageHeader" Name="SAYFABASI"
+		Height="2910"
+		CanGrow="0"
+	>
+		<Control 
+		Type="AR.Shape"
+		Name="Shape1"
+		Left="531"
+		Top="780"
+		Width="10312"
+		Height="1736"
+		LineStyle="2"
+		LineColor="8421504"
+		>
+		</Control>
+		<Control 
+		Type="AR.Shape"
+		Name="Shape2"
+		Left="531"
+		Top="319"
+		Width="10312"
+		Height="390"
+		BackStyle="1"
+		BackColor="8421504"
+		LineColor="14737632"
+		>
+		</Control>
+		<Control 
+		Type="AR.Label"
+		Name="Label1"
+		Left="7689"
+		Top="390"
+		Width="2941"
+		Height="248"
+		Caption="SAYİR ÇIKIŞ"
+		ClassName="Normal"
+		Style="font-family: &apos;Tahoma&apos;; font-weight: bold; color: rgb(255,255,255); text-align: right; "
+		>
+		</Control>
+		<Control 
+		Type="AR.Field"
+		Name="C_KODU"
+		Left="1878"
+		Top="921"
+		Width="3508"
+		Height="248"
+		Text="Cari Kodu"
+		ClassName="Normal"
+		Style="font-family: &apos;Tahoma&apos;; ddo-char-set: 162; font-size: 7pt; vertical-align: top; "
+		>
+		</Control>
+		<Control 
+		Type="AR.Field"
+		Name="C_NAME"
+		Left="1878"
+		Top="1205"
+		Width="3508"
+		Height="248"
+		Text="Cari Açıklama"
+		ClassName="Normal"
+		Style="font-family: &apos;Tahoma&apos;; ddo-char-set: 162; font-size: 7pt; vertical-align: top; "
+		>
+		</Control>
+		<Control 
+		Type="AR.Field"
+		Name="C_UNVANI"
+		Left="1878"
+		Top="1488"
+		Width="3508"
+		Height="248"
+		Text="Cari Ünvanı"
+		ClassName="Normal"
+		Style="font-family: &apos;Tahoma&apos;; ddo-char-set: 162; font-size: 7pt; vertical-align: top; "
+		>
+		</Control>
+		<Control 
+		Type="AR.Field"
+		Name="C_ADRES"
+		Left="1878"
+		Top="1772"
+		Width="3508"
+		Height="602"
+		Text="Adresi"
+		ClassName="Normal"
+		Style="font-family: &apos;Tahoma&apos;; ddo-char-set: 162; font-size: 7pt; vertical-align: top; "
+		>
+		</Control>
+		<Control 
+		Type="AR.Field"
+		Name="C_SEHIR"
+		Left="3366"
+		Top="2126"
+		Width="2020"
+		Height="248"
+		Text="Şehir"
+		ClassName="Normal"
+		Style="font-family: &apos;Tahoma&apos;; ddo-char-set: 162; font-size: 7pt; text-align: right; "
+		>
+		</Control>
+		<Control 
+		Type="AR.Label"
+		Name="Label2"
+		Left="709"
+		Top="921"
+		Width="1063"
+		Height="248"
+		Caption="CARİ KODU"
+		ClassName="Normal"
+		Style="font-family: &apos;Tahoma&apos;; font-size: 7pt; "
+		>
+		</Control>
+		<Control 
+		Type="AR.Label"
+		Name="Label3"
+		Left="709"
+		Top="1205"
+		Width="1063"
+		Height="248"
+		Caption="CARİ BİLGİLERİ"
+		ClassName="Normal"
+		Style="font-family: &apos;Tahoma&apos;; font-size: 7pt; "
+		>
+		</Control>
+		<Control 
+		Type="AR.Label"
+		Name="Label4"
+		Left="709"
+		Top="1488"
+		Width="1063"
+		Height="248"
+		Caption="CARİ ÜNVANI"
+		ClassName="Normal"
+		Style="font-family: &apos;Tahoma&apos;; font-size: 7pt; "
+		>
+		</Control>
+		<Control 
+		Type="AR.Label"
+		Name="Label5"
+		Left="709"
+		Top="1772"
+		Width="1063"
+		Height="248"
+		Caption="CARİ ADRESİ"
+		ClassName="Normal"
+		Style="font-family: &apos;Tahoma&apos;; font-size: 7pt; "
+		>
+		</Control>
+		<Control 
+		Type="AR.Label"
+		Name="Label6"
+		Left="5492"
+		Top="921"
+		Width="1240"
+		Height="248"
+		Caption="VERGİ DAİRESİ"
+		ClassName="Normal"
+		Style="font-family: &apos;Tahoma&apos;; font-size: 7pt; "
+		>
+		</Control>
+		<Control 
+		Type="AR.Label"
+		Name="Label7"
+		Left="5492"
+		Top="1205"
+		Width="1240"
+		Height="248"
+		Caption="VERGİ NUMARASI"
+		ClassName="Normal"
+		Style="font-family: &apos;Tahoma&apos;; font-size: 7pt; "
+		>
+		</Control>
+		<Control 
+		Type="AR.Field"
+		Name="C_VD"
+		Left="6768"
+		Top="921"
+		Width="2019"
+		Height="248"
+		Text="Vergi Dairesi"
+		ClassName="Normal"
+		Style="font-family: &apos;verdana&apos;; ddo-char-set: 1; font-size: 8pt; "
+		>
+		</Control>
+		<Control 
+		Type="AR.Field"
+		Name="C_VN"
+		Left="6768"
+		Top="1205"
+		Width="2019"
+		Height="248"
+		Text="Vergi Numarası"
+		ClassName="Normal"
+		Style="font-family: &apos;verdana&apos;; ddo-char-set: 1; font-size: 8pt; "
+		>
+		</Control>
+		<Control 
+		Type="AR.Field"
+		Name="B_BTARIH"
+		Left="9177"
+		Top="921"
+		Width="1559"
+		Height="248"
+		Text="Belge tarihi"
+		ClassName="Normal"
+		Style="font-family: &apos;Tahoma&apos;; ddo-char-set: 162; font-size: 7pt; font-weight: bold; text-align: right; "
+		>
+		</Control>
+	</Section>
+	<Section Type="GroupHeader" Name="GRUPBASI"
+		Height="315"
+	>
+		<Control 
+		Type="AR.Field"
+		Name="Field2"
+		Left="531"
+		Top="35"
+		Width="4926"
+		Height="248"
+		Text="AÇIKLAMA"
+		ClassName="Normal"
+		Style="font-family: &apos;Tahoma&apos;; ddo-char-set: 162; font-size: 7pt; vertical-align: middle; "
+		>
+		</Control>
+		<Control 
+		Type="AR.Field"
+		Name="Field6"
+		Left="9567"
+		Top="35"
+		Width="1276"
+		Height="248"
+		Text="TUTAR"
+		ClassName="Normal"
+		Style="font-family: &apos;Tahoma&apos;; ddo-char-set: 162; font-size: 7pt; text-align: right; vertical-align: middle; "
+		>
+		</Control>
+		<Control 
+		Type="AR.Line"
+		Name="Line2"
+		X1="531"
+		Y1="283"
+		X2="10843"
+		Y2="283"
+		LineStyle="2"
+		LineColor="12632256"
+		>
+		</Control>
+	</Section>
+	<Section Type="Detail" Name="SATIRLAR"
+		Height="270"
+	>
+		<Control 
+		Type="AR.DataControl"
+		Name="DataControl1"
+		Left="3579"
+		Top="886"
+		Width="1275"
+		Height="390"
+		Visible="0"
+		LockType="1"
+		>
+		</Control>
+		<Control 
+		Type="AR.Line"
+		Name="Line1"
+		X1="531"
+		Y1="248"
+		X2="10843"
+		Y2="248"
+		LineStyle="2"
+		LineColor="12632256"
+		>
+		</Control>
+		<Control 
+		Type="AR.Field"
+		Name="U_DNAME"
+		Left="531"
+		Top="0"
+		Width="4926"
+		Height="248"
+		Text="Stok Adı"
+		ClassName="Normal"
+		Style="font-family: &apos;Tahoma&apos;; ddo-char-set: 162; font-size: 7pt; vertical-align: middle; "
+		>
+		</Control>
+		<Control 
+		Type="AR.Field"
+		Name="U_ST"
+		Left="9567"
+		Top="0"
+		Width="1276"
+		Height="248"
+		Text="TUTAR"
+		ClassName="Normal"
+		Style="font-family: &apos;Tahoma&apos;; ddo-char-set: 162; font-size: 7pt; text-align: right; vertical-align: middle; "
+		>
+		</Control>
+<Script>
+<![CDATA[
+Sub OnFormat
+
+End Sub
+]]></Script>
+	</Section>
+	<Section Type="GroupFooter" Name="GRUPSON"
+		Height="360"
+	>
+		<Control 
+		Type="AR.Field"
+		Name="Field8"
+		Left="7866"
+		Top="0"
+		Width="1488"
+		Height="248"
+		Text="GENEL TOPLAM"
+		ClassName="Normal"
+		Style="font-family: &apos;Tahoma&apos;; ddo-char-set: 162; font-size: 7pt; font-weight: bold; vertical-align: middle; "
+		>
+		</Control>
+		<Control 
+		Type="AR.Field"
+		Name="T_GENEL"
+		Left="9354"
+		Top="0"
+		Width="1489"
+		Height="248"
+		Text="Genel Toplam"
+		ClassName="Normal"
+		Style="font-family: &apos;Tahoma&apos;; ddo-char-set: 162; font-size: 7pt; text-align: right; vertical-align: middle; "
+		>
+		</Control>
+<Script>
+<![CDATA[
+Sub OnFormat
+
+End Sub
+]]></Script>
+	</Section>
+	<Section Type="PageFooter" Name="SAYFASON"
+		Height="315"
+	>
+<Script>
+<![CDATA[
+Sub OnFormat
+
+End Sub
+]]></Script>
+	</Section>
+</Sections>
+</ActiveReportsLayout>

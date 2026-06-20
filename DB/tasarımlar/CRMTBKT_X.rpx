@@ -1,0 +1,468 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<ActiveReportsLayout 
+	GUIDLIB="{CCD79F5E-24C7-4DD0-A128-904FF98727CC}" GUIDREP="{184773EA-9FD8-455D-BA49-45AD802263CD}" 
+	LICENSE="10000000"
+	PrintWidth="10200"
+	DocumentName="onelee"
+	TOCWidth="1800"
+	ScriptLang="VBScript"
+>
+<Watermark
+		>
+</Watermark>
+<PageSettings>
+</PageSettings>
+<StyleSheet>
+	<Style Name="Normal"
+	Value="font-family: &apos;Arial&apos;; font-style: normal; font-variant: inherit; font-weight: normal; font-size: 10pt; font-size-adjust: inherit; font-stretch: inherit; color: rgb(0,0,0); background-color: rgb(255,255,255); background-image: inherit; background-repeat: inherit; background-attachment: inherit; background-x-position: inherit; background-y-position: inherit; opacity: inherit; word-spacing: inherit; letter-spacing: inherit; text-decoration: none; vertical-align: inherit; text-transform: inherit; text-align: inherit; text-indent: inherit; unicode-bidi: inherit; line-height: inherit; white-space: inherit; ddo-can-grow: inherit; ddo-can-shrink: inherit; ddo-char-set: 0; "
+	/>
+	<Style Name="Heading1"
+	Value="font-family: &apos;inherit&apos;; font-style: inherit; font-variant: inherit; font-weight: bold; font-size: 16pt; font-size-adjust: inherit; font-stretch: inherit; "
+	/>
+	<Style Name="Heading2"
+	Value="font-family: &apos;Times New Roman&apos;; font-style: italic; font-variant: inherit; font-weight: bold; font-size: 14pt; font-size-adjust: inherit; font-stretch: inherit; "
+	/>
+	<Style Name="Heading3"
+	Value="font-family: &apos;inherit&apos;; font-style: inherit; font-variant: inherit; font-weight: bold; font-size: 13pt; font-size-adjust: inherit; font-stretch: inherit; "
+	/>
+	<Style Name="Heading4"
+	/>
+</StyleSheet>
+<Sections>
+	<Section Type="PageHeader" Name="SAYFABASI"
+		Height="10665"
+	>
+		<Control 
+		Type="AR.Label"
+		Name="Label1"
+		Left="3224"
+		Top="815"
+		Width="4855"
+		Height="354"
+		Caption="MUTABAKAT MEKTUBU"
+		ClassName="Normal"
+		Style="text-align: center; font-family: &apos;Consolas&apos;; ddo-char-set: 1; font-size: 14pt; font-weight: bold; "
+		>
+		</Control>
+		<Control 
+		Type="AR.Field"
+		Name="Field1"
+		Left="3331"
+		Top="1701"
+		Width="5775"
+		Height="212"
+		Tag="C_NAME"
+		Text="CARİ BİLGİ"
+		ClassName="Normal"
+		Style="font-family: &apos;Consolas&apos;; ddo-char-set: 162; font-size: 9pt; "
+		>
+		</Control>
+		<Control 
+		Type="AR.Field"
+		Name="Field2"
+		Left="1382"
+		Top="1701"
+		Width="1559"
+		Height="212"
+		Text="CARİ ADI"
+		ClassName="Normal"
+		Style="font-family: &apos;Consolas&apos;; ddo-char-set: 162; font-size: 9pt; font-weight: bold; "
+		>
+		</Control>
+		<Control 
+		Type="AR.Field"
+		Name="Field3"
+		Left="3047"
+		Top="1701"
+		Width="284"
+		Height="212"
+		Text=":"
+		ClassName="Normal"
+		Style="font-family: &apos;Consolas&apos;; ddo-char-set: 162; font-size: 9pt; "
+		>
+		</Control>
+		<Control 
+		Type="AR.Field"
+		Name="Field4"
+		Left="3331"
+		Top="1949"
+		Width="5775"
+		Height="212"
+		Tag="C_ADRES"
+		Text="CARİ ADRESİ"
+		ClassName="Normal"
+		Style="font-family: &apos;Consolas&apos;; ddo-char-set: 162; font-size: 9pt; "
+		>
+		</Control>
+		<Control 
+		Type="AR.Field"
+		Name="Field5"
+		Left="1382"
+		Top="1949"
+		Width="1559"
+		Height="212"
+		Text="CARİ ADRESİ"
+		ClassName="Normal"
+		Style="font-family: &apos;Consolas&apos;; ddo-char-set: 162; font-size: 9pt; font-weight: bold; "
+		>
+		</Control>
+		<Control 
+		Type="AR.Field"
+		Name="Field6"
+		Left="3047"
+		Top="1949"
+		Width="284"
+		Height="212"
+		Text=":"
+		ClassName="Normal"
+		Style="font-family: &apos;Consolas&apos;; ddo-char-set: 162; font-size: 9pt; "
+		>
+		</Control>
+		<Control 
+		Type="AR.Field"
+		Name="Field7"
+		Left="3331"
+		Top="2197"
+		Width="5775"
+		Height="212"
+		Tag="C_VD"
+		Text="VERGİ DAİRESİ"
+		ClassName="Normal"
+		Style="font-family: &apos;Consolas&apos;; ddo-char-set: 162; font-size: 9pt; "
+		>
+		</Control>
+		<Control 
+		Type="AR.Field"
+		Name="Field8"
+		Left="1382"
+		Top="2197"
+		Width="1559"
+		Height="212"
+		Text="VERGİ DAİRESİ"
+		ClassName="Normal"
+		Style="font-family: &apos;Consolas&apos;; ddo-char-set: 162; font-size: 9pt; font-weight: bold; "
+		>
+		</Control>
+		<Control 
+		Type="AR.Field"
+		Name="Field9"
+		Left="3047"
+		Top="2197"
+		Width="284"
+		Height="212"
+		Text=":"
+		ClassName="Normal"
+		Style="font-family: &apos;Consolas&apos;; ddo-char-set: 162; font-size: 9pt; "
+		>
+		</Control>
+		<Control 
+		Type="AR.Field"
+		Name="Field10"
+		Left="3331"
+		Top="2693"
+		Width="5775"
+		Height="213"
+		Tag="C_TEL1"
+		Text="CARİ TELEFON"
+		ClassName="Normal"
+		Style="font-family: &apos;Consolas&apos;; ddo-char-set: 162; font-size: 9pt; "
+		>
+		</Control>
+		<Control 
+		Type="AR.Field"
+		Name="Field11"
+		Left="1382"
+		Top="2693"
+		Width="1559"
+		Height="213"
+		Text="TELEFON"
+		ClassName="Normal"
+		Style="font-family: &apos;Consolas&apos;; ddo-char-set: 162; font-size: 9pt; font-weight: bold; "
+		>
+		</Control>
+		<Control 
+		Type="AR.Field"
+		Name="Field12"
+		Left="3047"
+		Top="2693"
+		Width="284"
+		Height="213"
+		Text=":"
+		ClassName="Normal"
+		Style="font-family: &apos;Consolas&apos;; ddo-char-set: 162; font-size: 9pt; "
+		>
+		</Control>
+		<Control 
+		Type="AR.Field"
+		Name="Field13"
+		Left="3331"
+		Top="2445"
+		Width="5775"
+		Height="212"
+		Tag="C_VN"
+		Text="VERGİ NUMARASI"
+		ClassName="Normal"
+		Style="font-family: &apos;Consolas&apos;; ddo-char-set: 162; font-size: 9pt; "
+		>
+		</Control>
+		<Control 
+		Type="AR.Field"
+		Name="Field14"
+		Left="1382"
+		Top="2445"
+		Width="1559"
+		Height="212"
+		Text="VERGİ NUMARASI"
+		ClassName="Normal"
+		Style="font-family: &apos;Consolas&apos;; ddo-char-set: 162; font-size: 9pt; font-weight: bold; "
+		>
+		</Control>
+		<Control 
+		Type="AR.Field"
+		Name="Field15"
+		Left="3047"
+		Top="2445"
+		Width="284"
+		Height="212"
+		Text=":"
+		ClassName="Normal"
+		Style="font-family: &apos;Consolas&apos;; ddo-char-set: 162; font-size: 9pt; "
+		>
+		</Control>
+		<Control 
+		Type="AR.Line"
+		Name="Line1"
+		X1="1382"
+		Y1="3154"
+		X2="9815"
+		Y2="3154"
+		LineStyle="4"
+		LineColor="8421504"
+		>
+		</Control>
+		<Control 
+		Type="AR.Field"
+		Name="Field16"
+		Left="1382"
+		Top="3543"
+		Width="5775"
+		Height="213"
+		Text="Sayın yetkili;"
+		ClassName="Normal"
+		Style="font-family: &apos;Consolas&apos;; ddo-char-set: 162; font-size: 9pt; font-weight: bold; "
+		>
+		</Control>
+		<Control 
+		Type="AR.Field"
+		Name="Field17"
+		Left="1594"
+		Top="3791"
+		Width="3544"
+		Height="213"
+		Text="Şirketimiz nezdindeki hesap cariniz"
+		ClassName="Normal"
+		Style="font-family: &apos;Consolas&apos;; ddo-char-set: 162; font-size: 9pt; "
+		>
+		</Control>
+		<Control 
+		Type="AR.Field"
+		Name="Field18"
+		DataField="=date"
+		Left="5138"
+		Top="3791"
+		Width="1169"
+		Height="213"
+		Text="Tarih"
+		ClassName="Normal"
+		Style="font-family: &apos;Consolas&apos;; ddo-char-set: 162; font-size: 9pt; font-weight: bold; "
+		>
+		</Control>
+		<Control 
+		Type="AR.Field"
+		Name="Field19"
+		Left="6236"
+		Top="3791"
+		Width="2055"
+		Height="213"
+		Text="tarihini itibariyle"
+		ClassName="Normal"
+		Style="font-family: &apos;Consolas&apos;; ddo-char-set: 162; font-size: 9pt; "
+		>
+		</Control>
+		<Control 
+		Type="AR.Field"
+		Name="Field20"
+		Left="8291"
+		Top="3791"
+		Width="1666"
+		Height="213"
+		Tag="C_KB_TL"
+		Text="KALAN BAKİYE TL"
+		ClassName="Normal"
+		Style="font-family: &apos;Consolas&apos;; ddo-char-set: 162; font-size: 9pt; font-weight: bold; "
+		>
+		</Control>
+		<Control 
+		Type="AR.Field"
+		Name="Field21"
+		Left="1594"
+		Top="4039"
+		Width="8611"
+		Height="213"
+		Text="Borç/Alacak bakiyesi vermektedir. Mutabık olup olmadığınızı bildirmenizi rica ederiz."
+		ClassName="Normal"
+		Style="font-family: &apos;Consolas&apos;; ddo-char-set: 162; font-size: 9pt; "
+		>
+		</Control>
+		<Control 
+		Type="AR.Field"
+		Name="Field22"
+		Left="1382"
+		Top="4535"
+		Width="5775"
+		Height="213"
+		Text="Saygılarımızla;"
+		ClassName="Normal"
+		Style="font-family: &apos;Consolas&apos;; ddo-char-set: 162; font-size: 9pt; font-weight: bold; "
+		>
+		</Control>
+		<Control 
+		Type="AR.Field"
+		Name="Field23"
+		Left="1594"
+		Top="4783"
+		Width="8469"
+		Height="213"
+		Tag="F_FIRMA"
+		Text="Firma Adı"
+		ClassName="Normal"
+		Style="font-family: &apos;Consolas&apos;; ddo-char-set: 162; font-size: 9pt; "
+		>
+		</Control>
+		<Control 
+		Type="AR.Field"
+		Name="Field24"
+		Left="1382"
+		Top="6697"
+		Width="5775"
+		Height="212"
+		Text="Notlar;"
+		ClassName="Normal"
+		Style="font-family: &apos;Consolas&apos;; ddo-char-set: 162; font-size: 9pt; font-weight: bold; "
+		>
+		</Control>
+		<Control 
+		Type="AR.Field"
+		Name="Field25"
+		Left="1594"
+		Top="6945"
+		Width="8575"
+		Height="212"
+		Text="1-) Hata ve unutma müstesnadır."
+		ClassName="Normal"
+		Style="font-family: &apos;Consolas&apos;; ddo-char-set: 162; font-size: 9pt; "
+		>
+		</Control>
+		<Control 
+		Type="AR.Field"
+		Name="Field26"
+		Left="1594"
+		Top="7193"
+		Width="8575"
+		Height="425"
+		Text="2-) Mutabakat veya itirazınızı bildirmediğiniz taktirde T.T.K’nun 94 maddesine gereğince bakiye’de mutabık sayılacağınızı hatırlatırız."
+		ClassName="Normal"
+		Style="font-family: &apos;Consolas&apos;; ddo-char-set: 162; font-size: 9pt; "
+		>
+		</Control>
+		<Control 
+		Type="AR.Field"
+		Name="Field27"
+		Left="1594"
+		Top="7654"
+		Width="8115"
+		Height="460"
+		Text="3-) Bakiye’de mutabık olmadığınız taktirde bir hesap ekstrenizin gönderilmesini rica ederiz."
+		ClassName="Normal"
+		Style="font-family: &apos;Consolas&apos;; ddo-char-set: 162; font-size: 9pt; "
+		>
+		</Control>
+		<Control 
+		Type="AR.Line"
+		Name="Line2"
+		X1="1453"
+		Y1="8433"
+		X2="9886"
+		Y2="8433"
+		LineStyle="4"
+		LineColor="8421504"
+		>
+		</Control>
+		<Control 
+		Type="AR.Field"
+		Name="Field28"
+		Left="7795"
+		Top="5209"
+		Width="1595"
+		Height="212"
+		Text="İmza ve Kaşe"
+		ClassName="Normal"
+		Style="font-family: &apos;Consolas&apos;; ddo-char-set: 162; font-size: 9pt; font-weight: bold; "
+		>
+		</Control>
+		<Control 
+		Type="AR.Field"
+		Name="Field29"
+		Left="1453"
+		Top="8929"
+		Width="5775"
+		Height="213"
+		Text="Mutabık olduğumuzu / olmadığımızı bildiririz."
+		ClassName="Normal"
+		Style="font-family: &apos;Consolas&apos;; ddo-char-set: 162; font-size: 9pt; font-weight: bold; "
+		>
+		</Control>
+		<Control 
+		Type="AR.Field"
+		Name="Field30"
+		Left="1665"
+		Top="9177"
+		Width="8469"
+		Height="213"
+		Tag="C_NAME"
+		Text="CARİ BİLGİ"
+		ClassName="Normal"
+		Style="font-family: &apos;Consolas&apos;; ddo-char-set: 162; font-size: 9pt; "
+		>
+		</Control>
+		<Control 
+		Type="AR.Field"
+		Name="Field31"
+		Left="7866"
+		Top="9602"
+		Width="1595"
+		Height="213"
+		Text="İmza ve Kaşe"
+		ClassName="Normal"
+		Style="font-family: &apos;Consolas&apos;; ddo-char-set: 162; font-size: 9pt; font-weight: bold; "
+		>
+		</Control>
+	</Section>
+	<Section Type="GroupHeader" Name="GRUPBASI"
+		Height="0"
+	>
+	</Section>
+	<Section Type="Detail" Name="SATIRLAR"
+		Height="0"
+	>
+	</Section>
+	<Section Type="GroupFooter" Name="GRUPSON"
+		Height="0"
+	>
+	</Section>
+	<Section Type="PageFooter" Name="SAYFASON"
+		Height="330"
+	>
+	</Section>
+</Sections>
+</ActiveReportsLayout>
