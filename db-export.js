@@ -241,7 +241,8 @@ GO
         const dir = path.join(process.cwd(), 'DB');
         if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
 
-        const file = path.join(dir, `guncelleme_${Date.now()}.sql`);
+        const file = path.join(dir, `guncelleme.sql`);
+        
         fs.writeFileSync(file, script, 'utf8');
 
         console.log('✅ Export tamamlandı:', file);
