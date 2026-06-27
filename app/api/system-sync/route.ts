@@ -73,14 +73,14 @@ export async function GET(request: NextRequest) {
             
             // Veritabanı bağımlılık hatası (Dependency) oluşmaması için kesin derleme sırası:
             const sqlFiles = [
-                'index.sql',               // Önce indexler temizlenip kurulur
+                'vw_StokListesi.sql',      // Stok listesi view'ı
                 'vw_CariEkstreDetay.sql',  // Rapor görünümünün bağımlı olduğu kök view
                 'V_CariAnalizRaporu.sql',  // vw_CariEkstreDetay'a bağımlı analiz view'ı
                 'vw_FaturaDetayRaporu.sql',// Fatura rapor view'ı
-                'vw_StokListesi.sql',      // Stok listesi view'ı
                 'sp_StokDetayGetir.sql',   // Prosedürler
                 'sp_StokDuzenle.sql',
-                'sp_UrunHareketAnaliz.sql'
+                'sp_UrunHareketAnaliz.sql',
+                'index.sql'                // En son indexler temizlenip kurulur
             ];
 
             const pool = await getDbConnection();
