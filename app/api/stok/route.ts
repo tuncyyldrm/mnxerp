@@ -5,7 +5,7 @@ import { getDbConnection } from '@/app/lib/db';
 export async function GET(request: Request) {
     const { searchParams } = new URL(request.url);
     
-    const aramaRaw = searchParams.get('search')?.trim().toUpperCase() || '';
+    const aramaRaw = searchParams.get('search')?.trim().toLocaleUpperCase('tr-TR') || '';
     const grubu = searchParams.get('grubu')?.trim() || '';
     const kategori = searchParams.get('kategori')?.trim() || '';
     const tipi = searchParams.get('tipi')?.trim() || '';
@@ -25,47 +25,56 @@ export async function GET(request: Request) {
         let relevanceSql = "10 AS relevance"; 
 
         if (aramaRaw) {
-            req.input('exact', sql.NVarChar, aramaRaw);
-            req.input('startSearch', sql.NVarChar, `${aramaRaw}%`);
+            req.input('exact', sql.VarChar, aramaRaw);
+            req.input('startSearch', sql.VarChar, `${aramaRaw}%`);
 
-            // Gelişmiş Kelime Ayrıştırma: Boşluklara göre ayırıyoruz
-            const kelimeler = aramaRaw.split(/\s+/).filter(k => k.length > 0);
-            
-            let searchConditions: string[] = [];
+            const temizArama = aramaRaw.replace(/-/g, ' ');
+            const akilliArama = temizArama.replace(/([A-Z]+)([0-9]+)/g, '$1 $2').replace(/([0-9]+)([A-Z]+)/g, '$1 $2');
+            const anaKelimeler = Array.from(new Set([...aramaRaw.split(/\s+/), ...akilliArama.split(/\s+/)])).filter(k => k.length > 0);
 
-            // 1. ÖNCELİK (Tam Eşleşme Skoru İçin): Eğer ürün kodu veya OEM direkt eşleşiyorsa paranteze başla
+            const turkceToIngilizce = (text: string) => {
+                return text
+                    .normalize("NFD")
+                    .replace(/[\u0300-\u036f]/g, "")
+                    .replace(/İ/g, "I");
+            };
+
+            // PERFORMANS: İndekslerin kilitlenmemesi için dinamik COLLATE ifadeleri kaldırıldı.
             let exactCondition = `(urunkodu = @exact OR OEM = @exact OR urunkodu LIKE @startSearch OR OEM LIKE @startSearch)`;
+            let anaKelimeBloklari: string[] = [];
             
-            // 2. B2B AKILLI ARAMA ALGORİTMASI: 
-            // Her kelime (opel, kapı, soket, arka) kendi içinde bir 'OR' bloğudur 
-            // ama bu bloklar birbirine 'AND' ile bağlanır. Böylece sıra bağımsız her kelime aranır.
-            let wordConditions: string[] = [];
-            
-            kelimeler.forEach((kelime, index) => {
-                const paramName = `p${index}`;
-                req.input(paramName, sql.NVarChar, `%${kelime}%`);
+            anaKelimeler.forEach((anaKelime, anaIndex) => {
+                const ingilizceHali = turkceToIngilizce(anaKelime);
+                const varyasyonlar = Array.from(new Set([anaKelime, ingilizceHali]));
+                let icSubConditions: string[] = [];
 
-                // View'da NULL olan OEM_5 ile OEM_9 arasını buraya yazmıyoruz ki SQL hata verip boş dönmesin.
-                wordConditions.push(`(
-                    urun      LIKE @${paramName} OR 
-                    urunalt   LIKE @${paramName} OR 
-                    urunkodu  LIKE @${paramName} OR 
-                    OEM       LIKE @${paramName} OR 
-                    OEM_0 LIKE @${paramName} OR OEM_1 LIKE @${paramName} OR 
-                    OEM_2 LIKE @${paramName} OR OEM_3 LIKE @${paramName} OR 
-                    OEM_4 LIKE @${paramName}
-                )`);
+                varyasyonlar.forEach((varyasyon, varIndex) => {
+                    const paramName = `p_${anaIndex}_${varIndex}`;
+                    req.input(paramName, sql.VarChar, `%${varyasyon}%`);
+
+                    icSubConditions.push(`(
+                        urun      LIKE @${paramName} OR 
+                        urunalt   LIKE @${paramName} OR 
+                        urunkodu  LIKE @${paramName} OR 
+                        OEM       LIKE @${paramName} OR 
+                        OEM_0     LIKE @${paramName} OR 
+                        OEM_1     LIKE @${paramName} OR 
+                        OEM_2     LIKE @${paramName} OR 
+                        OEM_3     LIKE @${paramName}
+                    )`);
+                });
+
+                if (icSubConditions.length > 0) {
+                    anaKelimeBloklari.push(`(${icSubConditions.join(' OR ')})`);
+                }
             });
 
-            // Kelimelerin tümünün satırda geçmesini zorunlu kılıyoruz (AND ile birleştirme)
-            if (wordConditions.length > 0) {
-                // Hem tam eşleşme kontrolünü hem de kelime kombinasyonlarını tek potada eritiyoruz
-                filterSql += ` AND ( ${exactCondition} OR ( ${wordConditions.join(' AND ')} ) ) `;
+            if (anaKelimeBloklari.length > 0) {
+                filterSql += ` AND ( ${exactCondition} OR ( ${anaKelimeBloklari.join(' AND ')} ) ) `;
             } else {
                 filterSql += ` AND ${exactCondition} `;
             }
 
-            // Alaka düzeyi puanlaması (Sıralamayı en kusursuz hale getirmek için optimize edildi)
             relevanceSql = `
                 CASE 
                     WHEN urunkodu = @exact THEN 1000
@@ -78,21 +87,22 @@ export async function GET(request: Request) {
             `;
         }
 
-        // Sabit Filtreler
-        if (grubu) { req.input('grubu', sql.NVarChar, grubu); filterSql += ` AND grubu = @grubu`; }
-        if (kategori) { req.input('kategori', sql.NVarChar, kategori); filterSql += ` AND kateGOri = @kategori`; }
-        if (tipi) { req.input('tipi', sql.NVarChar, tipi); filterSql += ` AND tipi = @tipi`; }
+        if (grubu) { req.input('grubu', sql.VarChar, grubu); filterSql += ` AND grubu = @grubu`; }
+        if (kategori) { req.input('kategori', sql.VarChar, kategori); filterSql += ` AND kateGOri = @kategori`; }
+        if (tipi) { req.input('tipi', sql.VarChar, tipi); filterSql += ` AND tipi = @tipi`; }
 
+        // SİHİRLİ DOKUNUŞ: COUNT sorgusunu tamamen uçurduk. 
+        // COUNT(1) OVER() ifadesiyle toplam kayıt sayısını tek sorguda mainQuery içinden alıyoruz!
         const mainQuery = `
             SELECT 
                 urunkodu, urun, urunalt, ureticifirma, 
                 grubu, kateGOri, tipi, Raf, fiyatı, 
-                OEM, STK_FULL, OEM_0, OEM_1, OEM_2, OEM_3, OEM_4,
-                OEM_5, OEM_6, OEM_7, OEM_8, OEM_9,
+                OEM, STK_FULL, 
+                OEM_0, OEM_1, OEM_2, OEM_3, OEM_4, OEM_5, OEM_6, OEM_7, OEM_8, OEM_9,
                 MevcutBakiye,
                 ${relevanceSql},
-                COUNT(*) OVER() AS TotalRecords
-            FROM [dbo].[vw_StokListesi] WITH (NOLOCK)
+                COUNT(1) OVER() AS TotalRecords
+            FROM [dbo].[vw_StokListesi] WITH (NOEXPAND, NOLOCK)
             ${filterSql}
             ORDER BY 
                 relevance DESC,
@@ -101,23 +111,26 @@ export async function GET(request: Request) {
         `;
 
         const result = await req.query(mainQuery);
+        
+        // Eğer hiçbir kayıt yoksa boş dönüyoruz
+        if (!result.recordset || result.recordset.length === 0) {
+            return NextResponse.json([], {
+                status: 200,
+                headers: {
+                    'Cache-Control': 'no-store, must-revalidate',
+                    'X-Total-Count': '0',
+                    'X-Total-Pages': '0'
+                }
+            });
+        }
 
-        const totalRecords = (result.recordset && result.recordset.length > 0) 
-            ? result.recordset[0].TotalRecords 
-            : 0;
+        // İlk satırdaki TotalRecords alanından toplam kayıt sayısını güvenle alıyoruz
+        const totalRecords = result.recordset[0].TotalRecords || 0;
 
-        // Ön yüz yapını asla bozmamak için TotalRecords alanını gizleyip saf array üretiyoruz
-        const data = result.recordset.map(row => {
-            const { TotalRecords, ...rest } = row;
-            return rest;
-        });
-
-        // ÇIKTI FORMATI DEĞİŞMEDİ: Ön yüzün doğrudan okuduğu saf dizi ([]) formatı döndürülüyor.
-        return NextResponse.json(data, {
+        return NextResponse.json(result.recordset, {
             status: 200,
             headers: {
                 'Cache-Control': 'no-store, must-revalidate',
-                // Sayfalama ihtiyacın için veriler arka planda Header'da akmaya devam eder.
                 'X-Total-Count': totalRecords.toString(),
                 'X-Total-Pages': Math.ceil(totalRecords / limit).toString()
             }
@@ -125,9 +138,6 @@ export async function GET(request: Request) {
 
     } catch (err: any) {
         console.error("API Hatası Detayı:", err.message);
-        return NextResponse.json({ 
-            error: "Sunucu hatası", 
-            details: err.message 
-        }, { status: 500 });
+        return NextResponse.json({ error: "Sunucu hatası", details: err.message }, { status: 500 });
     }
 }
