@@ -67,52 +67,70 @@ export async function GET(request: NextRequest) {
             }
 
             // ----------------------------------------------------
-            // AŞAMA 3: SQL VERİTABANI GÜNCELLEMESİ (OPTIMIZE EDILDI 🛡️)
+            // AŞAMA 3: ÇOKLU SQL DOSYASI SENKRONİZASYONU 🛡️
             // ----------------------------------------------------
-            await sendProgress('loading', '🗄️ Aşama 3/4: Veritabanı (guncelleme.sql) senkronize ediliyor...', 80);
-            const sqlFilePath = path.join(process.cwd(), 'DB', 'guncelleme.sql');
+            await sendProgress('loading', '🗄️ Aşama 3/4: SQL scriptleri sıralı senkronizasyon için hazırlanıyor...', 80);
+            
+            // Veritabanı bağımlılık hatası (Dependency) oluşmaması için kesin derleme sırası:
+            const sqlFiles = [
+                'index.sql',               // Önce indexler temizlenip kurulur
+                'vw_CariEkstreDetay.sql',  // Rapor görünümünün bağımlı olduğu kök view
+                'V_CariAnalizRaporu.sql',  // vw_CariEkstreDetay'a bağımlı analiz view'ı
+                'vw_FaturaDetayRaporu.sql',// Fatura rapor view'ı
+                'vw_StokListesi.sql',      // Stok listesi view'ı
+                'sp_StokDetayGetir.sql',   // Prosedürler
+                'sp_StokDuzenle.sql',
+                'sp_UrunHareketAnaliz.sql'
+            ];
 
-            if (fs.existsSync(sqlFilePath)) {
-                const fullSqlScript = fs.readFileSync(sqlFilePath, 'utf8');
-                
-                // Görünmez satır sonu (\r) karakterlerini temizle ve standartlaştır
-                const standardizedSql = fullSqlScript.replace(/\r\n/g, '\n');
+            const pool = await getDbConnection();
 
-                // Sadece satır başında ve sonunda tek başına izole duran GO komutlarını yakala (Gövde içi GO kalıntılarını korur)
-                const sqlQueries = standardizedSql
-                    .split(/(?:^|\n)\s*GO\s*(?:\n|$)/i)
-                    .map(q => q.trim())
-                    .filter(Boolean);
+            for (const file of sqlFiles) {
+                const sqlFilePath = path.join(process.cwd(), 'DB', file);
 
-                if (sqlQueries.length > 0) {
-                    const pool = await getDbConnection();
+                if (fs.existsSync(sqlFilePath)) {
+                    await sendProgress('loading', `⏳ [SQL] ${file} dosyası işleniyor...`, 82);
+                    const fullSqlScript = fs.readFileSync(sqlFilePath, 'utf8');
+                    
+                    // Görünmez satır sonu (\r) karakterlerini temizle ve standartlaştır
+                    const standardizedSql = fullSqlScript.replace(/\r\n/g, '\n');
+
+                    // Satır başında ve sonunda tek başına izole duran GO komutlarını yakala
+                    const sqlQueries = standardizedSql
+                        .split(/(?:^|\n)\s*GO\s*(?:\n|$)/i)
+                        .map(q => q.trim())
+                        .filter(Boolean);
+
                     for (let i = 0; i < sqlQueries.length; i++) {
                         let singleQuery = sqlQueries[i];
                         
-                        // Eğer boşluklardan dolayı sadece "GO" kalmış bir blok varsa es geç
                         if (singleQuery.toUpperCase() === 'GO') continue;
 
                         try {
                             await pool.request().query(singleQuery);
                             basariliSorguSayisi++;
                         } catch (sqlStepError: any) {
-                            // Hata durumunda dükkan panelinde nokta atışı tanı koyabilmek için sorgunun ilk 50 karakterini rapora ekliyoruz
-                            const previewText = singleQuery.substring(0, 50).replace(/\n/g, ' ');
-                            await sendProgress('error', `❌ SQL Hatası! [Blok: ${i + 1}] (${previewText}...) Detay: ${sqlStepError?.message}`, 85);
+                            const previewText = singleQuery.substring(0, 40).replace(/\n/g, ' ');
+                            await sendProgress('error', `❌ SQL Hatası! [Dosya: ${file}] [Blok: ${i + 1}] (${previewText}...) Detay: ${sqlStepError?.message}`, 85);
                             await writer.close();
                             return;
                         }
                     }
+                } else {
+                    // Eğer kritik bir dosya klasörde fiziksel olarak yoksa süreci durdurup hata veriyoruz
+                    await sendProgress('error', `❌ Kritik Dosya Eksik! DB/${file} bulunamadı.`, 80);
+                    await writer.close();
+                    return;
                 }
             }
-            await sendProgress('loading', `✅ SQL Senkronizasyonu tamamlandı. ${basariliSorguSayisi} SQL bloğu işlendi.`, 90);
+            
+            await sendProgress('loading', `✅ Tüm SQL dosyaları başarıyla işlendi. Toplam ${basariliSorguSayisi} SQL bloğu çalıştırıldı.`, 90);
 
             // ----------------------------------------------------
             // AŞAMA 4: GÜVENLİ KAPATMA VE HOT RESTART HAZIRLIĞI
             // ----------------------------------------------------
             await sendProgress('loading', '🚀 Aşama 4/4: Sistem servisleri güncelleniyor, yeni sürüm devreye alınıyor...', 95);
             
-            // Başarı mesajını gönderip stream akışını kapatıyoruz
             await sendProgress('success', `🎉 MNX ERP Başarıyla Güncellendi! Mod: ${isDevMode ? 'Geliştirme' : 'Üretim'}, ${basariliSorguSayisi} SQL bloğu işlendi.`, 100);
             await writer.close();
 
@@ -124,7 +142,7 @@ export async function GET(request: NextRequest) {
             return;
         }
 
-        // İstemcinin (Tarayıcının) text/event-stream verisini tam alabilmesi için 3 saniye pay bırakıyoruz.
+        // İstemcinin veriyi tam alabilmesi için 3 saniye pay bırakıyoruz.
         setTimeout(async () => {
             try {
                 if (isDevMode) {
@@ -136,7 +154,6 @@ export async function GET(request: NextRequest) {
 
                 if (dynamicPm2Name && dynamicPm2Name !== 'false') {
                     console.log(`🔄 PM2 Ortamı Tespit Edildi (${process.env.name}). Servis yeniden başlatılıyor...`);
-                    // Sıfır kesinti (Zero-Downtime) için reload tetikliyoruz
                     await execPromise(`pm2 reload "${process.env.name}"`);
                 } else {
                     console.log("⚠️ PM2 süreç adı bulunamadı. Değişikliklerin devreye girmesi için süreç güvenli şekilde kapatılıyor (Exit 0)...");
