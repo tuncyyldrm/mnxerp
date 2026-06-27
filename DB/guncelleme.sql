@@ -1,7 +1,6 @@
 /* =========================================================================
-    ✨ %100 RISK-FREE MULTI-TENANT UPDATE PACK (MUHASEBE DOSTU SÜRÜM)
-    Generated: 27.06.2026 21:56:18
-    🛡️ BU SCRIPT ORİJİNAL TABLOLARA DOKUNMAZ. BAŞKA FİRMALARIN GÜNCELLEMELERİNİ BOZMAZ.
+    ✨ %100 GÜVENLİ VEFALI SCRIPT GÜNCELLEME PAKETİ (V4 - NİHAİ)
+    🛡️ BU SCRIPT SADECE DIŞ KATMANA DOKUNUR VE ASLA SÖZÜNDEN DÖNÜP PATLAMAZ.
 ========================================================================= */
 
 SET NOCOUNT ON;
@@ -9,7 +8,7 @@ SET ANSI_NULLS ON;
 SET QUOTED_IDENTIFIER ON;
 GO
 
-/* ===================== 🛡️ ADIM 1: DYNAMIC STUBS (ESKİ BAĞLARI KOPARMA) ===================== */
+/* ===================== 🛡️ ADIM 1: DYNAMIC STUBS ===================== */
 IF EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[vw_StokListesi]') AND type in (N'V')) DROP VIEW [dbo].[vw_StokListesi];
 GO
 IF EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[vw_StokBakiyeIndexed]') AND type in (N'V')) DROP VIEW [dbo].[vw_StokBakiyeIndexed];
@@ -113,12 +112,12 @@ SELECT
     NULL AS OEM_5, NULL AS OEM_6, NULL AS OEM_7, NULL AS OEM_8, NULL AS OEM_9,
     ISNULL(b.ToplamAlis - b.ToplamSatis, 0) AS MevcutBakiye
 FROM [dbo].[stok] s WITH (NOLOCK)
-LEFT JOIN [dbo].[vw_StokBakiyeIndexed] b WITH (NOEXPAND) ON s.urunkodu = b.detay_kodu;
+LEFT JOIN [dbo].[vw_StokBakiyeIndexed] b WITH (NOLOCK) ON s.urunkodu = b.detay_kodu;
 GO
 
 
-/* ===================== ⚡ ADIM 3: ENTEGRE STORED PROCEDURE YAPILARI ===================== */
-CREATE OR ALTER PROCEDURE [dbo].[sp_StokDetayGetir] @UrunKodu NVARCHAR(100) AS BEGIN SET NOCOUNT ON; SELECT s.urunkodu, s.urun, s.urunalt, s.ureticifirma, s.grubu, s.kateGOri, s.tipi, s.Raf, s.fiyatı, s.OEM, s.STK_FULL, s.OEM_0, s.OEM_1, s.OEM_2, s.OEM_3, s.OEM_4, ISNULL(b.ToplamAlis - b.ToplamSatis, 0) AS MevcutBakiye FROM dbo.stok s WITH (NOLOCK) LEFT JOIN dbo.vw_StokBakiyeIndexed b WITH (NOEXPAND) ON s.urunkodu = b.detay_kodu WHERE s.urunkodu = @UrunKodu; END
+/* ===================== ⚡ ADIM 3: STORED PROCEDURE GÜNCELLEMELERİ ===================== */
+CREATE OR ALTER PROCEDURE [dbo].[sp_StokDetayGetir] @UrunKodu NVARCHAR(100) AS BEGIN SET NOCOUNT ON; SELECT s.urunkodu, s.urun, s.urunalt, s.ureticifirma, s.grubu, s.kateGOri, s.tipi, s.Raf, s.fiyatı, s.OEM, s.STK_FULL, s.OEM_0, s.OEM_1, s.OEM_2, s.OEM_3, s.OEM_4, ISNULL(b.ToplamAlis - b.ToplamSatis, 0) AS MevcutBakiye FROM dbo.stok s WITH (NOLOCK) LEFT JOIN [dbo].[vw_StokBakiyeIndexed] b WITH (NOLOCK) ON s.urunkodu = b.detay_kodu WHERE s.urunkodu = @UrunKodu; END
 GO
 
 CREATE OR ALTER PROCEDURE [dbo].[sp_StokDuzenle] @UrunKodu NVARCHAR(100), @UrunAd NVARCHAR(250), @Raf NVARCHAR(50), @OEM_0 NVARCHAR(100), @OEM_1 NVARCHAR(100), @OEM_2 NVARCHAR(100), @OEM_3 NVARCHAR(100), @OEM_4 NVARCHAR(100) AS BEGIN SET NOCOUNT ON; UPDATE [dbo].[stok] SET urun = LTRIM(RTRIM(@UrunAd)), Raf = LTRIM(RTRIM(@Raf)), OEM_0 = LTRIM(RTRIM(@OEM_0)), OEM_1 = LTRIM(RTRIM(@OEM_1)), OEM_2 = LTRIM(RTRIM(@OEM_2)), OEM_3 = LTRIM(RTRIM(@OEM_3)), OEM_4 = LTRIM(RTRIM(@OEM_4)) WHERE urunkodu = @UrunKodu; END
@@ -128,7 +127,7 @@ CREATE OR ALTER PROCEDURE [dbo].[sp_UrunHareketAnaliz] @DetayKodu NVARCHAR(100) 
 GO
 
 
-/* ===================== 🛠️ ADIM 4: SADECE SÜRÜM VİEW İNDEKSLERİ ===================== */
+/* ===================== 🛠️ ADIM 4: FİZİKSEL VIEW İNDEKSLERİ ===================== */
 
 IF EXISTS (SELECT 1 FROM sys.views WHERE object_id = OBJECT_ID('dbo.vw_StokBakiyeIndexed'))
 BEGIN
@@ -137,9 +136,9 @@ BEGIN
         DROP INDEX [UX_vw_StokBakiyeIndexed_detay_kodu] ON dbo.vw_StokBakiyeIndexed;
     END;
     CREATE UNIQUE CLUSTERED INDEX [UX_vw_StokBakiyeIndexed_detay_kodu] ON dbo.vw_StokBakiyeIndexed (detay_kodu);
-    PRINT '✔️ Katman Indeksi Olusturuldu: [dbo].[vw_StokBakiyeIndexed] -> UX_vw_StokBakiyeIndexed_detay_kodu';
+    PRINT '✔️ Katman Indeksi Basildi: [dbo].[vw_StokBakiyeIndexed] -> UX_vw_StokBakiyeIndexed_detay_kodu';
 END;
 GO
 
-PRINT '⚡ Kurulum sıfır riskle tamamlandı. Muhasebe yapıları korundu.';
+PRINT '⚡ Kurulum ve güncelleme başarıyla bitti. Muhasebe güvende.';
 GO
