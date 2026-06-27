@@ -1,6 +1,6 @@
 /* =========================================================================
     ✨ %100 RISK-FREE MULTI-TENANT UPDATE PACK (MUHASEBE DOSTU SÜRÜM)
-    Generated: 27.06.2026 21:54:37
+    Generated: 27.06.2026 21:56:18
     🛡️ BU SCRIPT ORİJİNAL TABLOLARA DOKUNMAZ. BAŞKA FİRMALARIN GÜNCELLEMELERİNİ BOZMAZ.
 ========================================================================= */
 
