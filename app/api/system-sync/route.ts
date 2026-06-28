@@ -12,7 +12,9 @@ export const dynamic = 'force-dynamic';
 export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const secretKey = searchParams.get('key');
-    const GUVENLIK_ANAHTARI = "MNXERP_2026_Beta_X4897";
+    
+    // 🔐 GÜVENLİK: Öncelikli olarak .env dosyasından oku, yoksa fallback kullan
+    const GUVENLIK_ANAHTARI = process.env.SYSTEM_SYNC_SECRET || "MNXERP_2026_Beta_X4897";
 
     const responseStream = new TransformStream();
     const writer = responseStream.writable.getWriter();
@@ -23,13 +25,12 @@ export async function GET(request: NextRequest) {
         await writer.write(encoder.encode(`data: ${data}\n\n`));
     };
 
-    // Arka plandaki asenkron süreci yöneten ana gövde
     (async () => {
         let isDevMode = process.env.NODE_ENV === 'development';
         let basariliSorguSayisi = 0;
 
         try {
-            if (secretKey !== GUVENLIK_ANAHTARI) {
+            if (!secretKey || secretKey !== GUVENLIK_ANAHTARI) {
                 await sendProgress('error', 'Yetkisiz erişim denemesi! Güvenlik anahtarı geçersiz.', 0);
                 await writer.close();
                 return;
@@ -38,7 +39,7 @@ export async function GET(request: NextRequest) {
             // ----------------------------------------------------
             // AŞAMA 1: GIT DOĞRULAMA & KOD ÇEKME
             // ----------------------------------------------------
-            await sendProgress('loading', '💾 Aşama 1/4: GitHub üzerinden en son kodlar çekiliyor ve doğrulanıyor...', 15);
+            await sendProgress('loading', '💾 Aşama 1/4: GitHub üzerinden en son kodlar çekiliyor...', 15);
             try {
                 await execPromise('git fetch origin main', { cwd: process.cwd() });
                 await execPromise('git reset --hard origin/main', { cwd: process.cwd() });
@@ -50,37 +51,36 @@ export async function GET(request: NextRequest) {
             }
 
             // ----------------------------------------------------
-            // AŞAMA 2: NEXT.JS YENİDEN BUILD (DERLEME)
+            // AŞAMA 2: NEXT.JS YENİDEN BUILD
             // ----------------------------------------------------
             if (isDevMode) {
-                await sendProgress('loading', 'ℹ️ Yerel test ortamı (Dev Modu) algılandı. Build (Derleme) aşaması es geçiliyor...', 75);
+                await sendProgress('loading', 'ℹ️ Yerel test ortamı (Dev Modu) algılandı. Build aşaması es geçiliyor...', 75);
             } else {
-                await sendProgress('loading', '🛠️ Aşama 2/4: Yeni kodlar dükkan için optimize ediliyor (Build alınıyor). Bu işlem 30-40 sn sürebilir...', 50);
+                await sendProgress('loading', '🛠️ Aşama 2/4: Yeni kodlar dükkan için optimize ediliyor (Build alınıyor)...', 50);
                 try {
                     await execPromise('npm run build', { cwd: process.cwd() });
                     await sendProgress('loading', '✅ Proje başarıyla yeniden derlendi (Build tamam).', 75);
                 } catch (buildError: any) {
-                    await sendProgress('error', `❌ Build (Derleme) Hatası! Kodda syntax hatası veya eksik paket olabilir. Detay: ${buildError?.message || buildError}`, 75);
+                    await sendProgress('error', `❌ Build Hatası! Detay: ${buildError?.message || buildError}`, 75);
                     await writer.close();
                     return;
                 }
             }
 
             // ----------------------------------------------------
-            // AŞAMA 3: ÇOKLU SQL DOSYASI SENKRONİZASYONU 🛡️
+            // AŞAMA 3: ÇOKLU SQL DOSYASI SENKRONİZASYONU
             // ----------------------------------------------------
             await sendProgress('loading', '🗄️ Aşama 3/4: SQL scriptleri sıralı senkronizasyon için hazırlanıyor...', 80);
             
-            // Veritabanı bağımlılık hatası (Dependency) oluşmaması için kesin derleme sırası:
             const sqlFiles = [
-                'vw_StokListesi.sql',      // Stok listesi view'ı
-                'vw_CariEkstreDetay.sql',  // Rapor görünümünün bağımlı olduğu kök view
-                'V_CariAnalizRaporu.sql',  // vw_CariEkstreDetay'a bağımlı analiz view'ı
-                'vw_FaturaDetayRaporu.sql',// Fatura rapor view'ı
-                'sp_StokDetayGetir.sql',   // Prosedürler
+                'vw_StokListesi.sql',
+                'vw_CariEkstreDetay.sql',
+                'V_CariAnalizRaporu.sql',
+                'vw_FaturaDetayRaporu.sql',
+                'sp_StokDetayGetir.sql',
                 'sp_StokDuzenle.sql',
                 'sp_UrunHareketAnaliz.sql',
-                'index.sql'                // En son indexler temizlenip kurulur
+                'index.sql'
             ];
 
             const pool = await getDbConnection();
@@ -91,11 +91,8 @@ export async function GET(request: NextRequest) {
                 if (fs.existsSync(sqlFilePath)) {
                     await sendProgress('loading', `⏳ [SQL] ${file} dosyası işleniyor...`, 82);
                     const fullSqlScript = fs.readFileSync(sqlFilePath, 'utf8');
-                    
-                    // Görünmez satır sonu (\r) karakterlerini temizle ve standartlaştır
                     const standardizedSql = fullSqlScript.replace(/\r\n/g, '\n');
 
-                    // Satır başında ve sonunda tek başına izole duran GO komutlarını yakala
                     const sqlQueries = standardizedSql
                         .split(/(?:^|\n)\s*GO\s*(?:\n|$)/i)
                         .map(q => q.trim())
@@ -103,10 +100,10 @@ export async function GET(request: NextRequest) {
 
                     for (let i = 0; i < sqlQueries.length; i++) {
                         let singleQuery = sqlQueries[i];
-                        
                         if (singleQuery.toUpperCase() === 'GO') continue;
 
                         try {
+                            // 💡 İPUCU: Büyük index dosyaları veya view'lar için gerekirse timeout süresi mssql config'inden artırılmalıdır.
                             await pool.request().query(singleQuery);
                             basariliSorguSayisi++;
                         } catch (sqlStepError: any) {
@@ -117,7 +114,6 @@ export async function GET(request: NextRequest) {
                         }
                     }
                 } else {
-                    // Eğer kritik bir dosya klasörde fiziksel olarak yoksa süreci durdurup hata veriyoruz
                     await sendProgress('error', `❌ Kritik Dosya Eksik! DB/${file} bulunamadı.`, 80);
                     await writer.close();
                     return;
@@ -129,9 +125,10 @@ export async function GET(request: NextRequest) {
             // ----------------------------------------------------
             // AŞAMA 4: GÜVENLİ KAPATMA VE HOT RESTART HAZIRLIĞI
             // ----------------------------------------------------
-            await sendProgress('loading', '🚀 Aşama 4/4: Sistem servisleri güncelleniyor, yeni sürüm devreye alınıyor...', 95);
-            
+            await sendProgress('loading', '🚀 Aşama 4/4: Sistem servisleri güncelleniyor...', 95);
             await sendProgress('success', `🎉 MNX ERP Başarıyla Güncellendi! Mod: ${isDevMode ? 'Geliştirme' : 'Üretim'}, ${basariliSorguSayisi} SQL bloğu işlendi.`, 100);
+            
+            // Önce akışı kapatıp tampon bellekteki verinin istemciye ulaşmasını kesinleştiriyoruz.
             await writer.close();
 
         } catch (globalError: any) {
@@ -142,28 +139,29 @@ export async function GET(request: NextRequest) {
             return;
         }
 
-        // İstemcinin veriyi tam alabilmesi için 3 saniye pay bırakıyoruz.
+        // Süreç yönetimini writer kapandıktan sonra başlatmak daha güvenlidir.
+        if (isDevMode) {
+            console.log("⚡ [MNX DEV]: Yerel dev ortamı çalışıyor. Süreç sonlandırılmadı.");
+            return;
+        }
+
         setTimeout(async () => {
             try {
-                if (isDevMode) {
-                    console.log("⚡ [MNX DEV]: Yerel dev ortamı çalışıyor. Süreç sonlandırılmadı, teste devam edebilirsiniz.");
-                    return;
-                }
+                // pm2 reload komutunun kendi adını env'den dinamik yakalaması için yedekli kontrol
+                const pm2ProcessName = process.env.name || process.env.PM2_INSTANCE_NAME;
 
-                const dynamicPm2Name = process.env.name || process.env.PM2_HOME;
-
-                if (dynamicPm2Name && dynamicPm2Name !== 'false') {
-                    console.log(`🔄 PM2 Ortamı Tespit Edildi (${process.env.name}). Servis yeniden başlatılıyor...`);
-                    await execPromise(`pm2 reload "${process.env.name}"`);
+                if (pm2ProcessName) {
+                    console.log(`🔄 PM2 Ortamı Tespit Edildi (${pm2ProcessName}). Servis yeniden başlatılıyor...`);
+                    await execPromise(`pm2 reload "${pm2ProcessName}"`);
                 } else {
-                    console.log("⚠️ PM2 süreç adı bulunamadı. Değişikliklerin devreye girmesi için süreç güvenli şekilde kapatılıyor (Exit 0)...");
+                    console.log("⚠️ PM2 süreç adı bulunamadı. Güvenli şekilde kapatılıyor (Exit 0)...");
                     process.exit(0);
                 }
             } catch (restartError) {
-                console.error("❌ Yeniden başlatma esnasında hata çıktı. Sert kapatma uygulanıyor (Exit 0).", restartError);
+                console.error("❌ Yeniden başlatma esnasında hata çıktı. Sert kapatma uygulanıyor.", restartError);
                 process.exit(0);
             }
-        }, 3000);
+        }, 4000); // Süreyi ağ gecikmelerine karşı 4 saniyeye çıkarttık.
 
     })();
 

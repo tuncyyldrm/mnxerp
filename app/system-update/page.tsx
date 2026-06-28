@@ -72,11 +72,11 @@ function SystemUpdateContent() {
       }
     };
 
+    // Sadece ilgili fonksiyonun içi güncellenmiştir, stil ve JSX yapılarınız tam uyumludur.
     eventSource.onerror = () => {
-      // 🔮 AKILLI KONTROL: Eğer backend işini bitirip 'success' verdiyse ve PM2 reload yüzünden 
-      // bağlantı koptuysa bunu hata olarak ekrana basma, süreci koru!
-      if (statusRef.current === 'success') {
-        console.log("🔄 PM2 servis reload aşamasında bağlantı koptu. Bu beklenen bir durumdur.");
+      // 🔮 GELİŞTİRİLMİŞ AKILLI KONTROL: State asenkron ilerlediği için hem ref'i hem de progress durumunu kontrol et
+      if (statusRef.current === 'success' || progress >= 95) {
+        console.log("🔄 PM2 servis reload aşamasında bağlantı kapandı. Güncelleme başarıyla tamamlandığı için bu durum normal kabul edildi.");
         eventSource.close();
         return;
       }
@@ -84,7 +84,7 @@ function SystemUpdateContent() {
       setStatus('error');
       setCurrentStepText('⚠️ Sunucu bağlantısı kesildi. Servisler yenileniyor olabilir.');
       setLogs((prevLogs) => [
-        { id: `err-conn-${Date.now()}`, message: 'Sunucuyla canlı bağlantı koptu. PM2/Sistem süreci yenileniyor veya timeout oluştu.' },
+        { id: `err-conn-${Date.now()}`, message: 'Sunucuyla canlı bağlantı koptu. PM2 süreci yenileniyor veya timeout oluştu.' },
         ...prevLogs
       ]);
       eventSource.close();
