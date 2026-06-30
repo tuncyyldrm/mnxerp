@@ -249,6 +249,98 @@ export default function Katalog() {
     }
   }, [seciliUrun]);
 
+
+  // --- HIZLI SATIŞ MODAL STATE'LERİ ---
+const [satisModalAcik, setSatisModalAcik] = useState(false);
+const [satisYapilacakUrun, setSatisYapilacakUrun] = useState<Urun | null>(null);
+
+// Cari Arama State'leri
+const [cariAramaMetni, setCariAramaMetni] = useState('');
+const [bulunanCariler, setBulunanCariler] = useState<{ id: number; id_name: string }[]>([]);
+const [seciliSatisCarisi, setSeciliSatisCarisi] = useState<{ id: number; id_name: string } | null>(null);
+const [cariOneriGoster, setCariOneriGoster] = useState(false);
+
+// Form Alanları
+const [satisMiktar, setSatisMiktar] = useState<number>(1);
+const [satisFiyat, setSatisFiyat] = useState<number>(0);
+const [satisKdvOrani, setSatisKdvOrani] = useState<number>(20);
+const [satisIslemde, setSatisIslemde] = useState(false);
+
+// Ürünün yanındaki "Satış Yap" butonuna basıldığında formu hazırlar
+const handleSatisButonTikla = (urun: Urun) => {
+  setSatisYapilacakUrun(urun);
+  setSatisFiyat(urun.fiyatı); // Katalog fiyatını varsayılan getirir
+  setSatisMiktar(1);
+  setSeciliSatisCarisi(null);
+  setCariAramaMetni('');
+  setSatisModalAcik(true);
+};
+
+// Dinamik Cari Arama (Debounce olmadan en yalın haliyle)
+useEffect(() => {
+  if (cariAramaMetni.trim().length < 2) {
+    setBulunanCariler([]);
+    return;
+  }
+
+  const filtreleCarileri = async () => {
+    try {
+      // Kendi sistemindeki cari listeleme API url'ine göre revize edebilirsin
+      const res = await fetch(`/api/cariler?search=${encodeURIComponent(cariAramaMetni)}`);
+      const data = await res.json();
+      if (data.success) {
+        setBulunanCariler(data.data);
+      }
+    } catch (err) {
+      console.error("Cari arama hatası:", err);
+    }
+  };
+
+  const timer = setTimeout(filtreleCarileri, 300);
+  return () => clearTimeout(timer);
+}, [cariAramaMetni]);
+
+// Satışı Tamamla ve API'ye Gönder
+const handleSatisKaydet = async (e: React.FormEvent) => {
+  e.preventDefault();
+  if (!seciliSatisCarisi || !satisYapilacakUrun) {
+    alert("Lütfen listeden geçerli bir müşteri seçin.");
+    return;
+  }
+
+  setSatisIslemde(true);
+  try {
+    const response = await fetch('/api/katalog-satis', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        cariId: seciliSatisCarisi.id,
+        cariAdi: seciliSatisCarisi.id_name,
+        urunAdi: satisYapilacakUrun.urun,
+        stokKodu: satisYapilacakUrun.urunkodu,
+        miktar: satisMiktar,
+        birimFiyat: satisFiyat,
+        kdvOrani: satisKdvOrani,
+        birim: 'ADET' // Varsayılan adet gönderdik
+      })
+    });
+
+    const result = await response.json();
+
+    if (result.success) {
+      alert(`Satış Başarılı! Faturaya İşlendi. İşlem No: ${result.islemNo}`);
+      setSatisModalAcik(false);
+      stokGetir(); // Canlı bakiyeyi ekranda güncellemek için mevcut fonksiyonunu tetikliyoruz
+    } else {
+      alert(`Hata: ${result.error}`);
+    }
+  } catch (err: any) {
+    alert(`Sistem Hatası: ${err.message}`);
+  } finally {
+    setSatisIslemde(false);
+  }
+};
+
   return (
     <div className="bg-[#F8FAFC] min-h-screen text-slate-900 pb-10 font-sans selection:bg-blue-100 overflow-x-hidden">
 
@@ -1031,13 +1123,18 @@ export default function Katalog() {
                           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 7h10M7 11h10M7 15h10M5 5h14a2 2 0 012 2v10a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2z" /></svg>
                           <span className="hidden sm:inline">Barkod</span>
                         </button>
-
                         <button
-                          disabled={isStoktaYok}
-                          onClick={() => window.open(`https://wa.me/90532XXXXXXX?text=${encodeURIComponent(`Merhaba, ${seciliUrun.urunkodu} kodlu ürün hakkında bilgi almak istiyorum.`)}`)}
-                          className={`px-4 md:w-36 h-10 md:h-12 rounded-lg font-bold text-[10px] tracking-wider uppercase transition-all flex items-center justify-center gap-1.5 flex-1 sm:flex-none ${isStoktaYok ? 'bg-slate-200 text-slate-400 cursor-not-allowed' : 'bg-emerald-600 text-white hover:bg-emerald-700 active:scale-[0.98]'}`}
+                          onClick={() => {
+                            // Önce detay modalını kapatıp temizce satış formunu açar
+                            setSeciliUrun(null);
+                            handleSatisButonTikla(seciliUrun);
+                          }}
+                          className="px-3 md:px-4 h-10 md:h-12 rounded-lg font-bold text-[10px] tracking-wider uppercase bg-blue-600 text-white hover:bg-blue-700 transition-all flex items-center justify-center gap-1.5 active:scale-[0.98]"
                         >
-                          {isStoktaYok ? 'Yok' : 'WhatsApp'}
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                          </svg>
+                          <span>Hızlı Satış</span>
                         </button>
                       </>
                     )}
@@ -1049,6 +1146,162 @@ export default function Katalog() {
           </div>
         );
       })()}
+
+
+{/* --- HIZLI SATIŞ POPUP (MODAL) --- */}
+{satisModalAcik && satisYapilacakUrun && (
+  <div className="fixed inset-0 z-[110] flex items-end md:items-center justify-center p-0 md:p-6 overflow-hidden">
+    {/* Arka Plan Karartısı */}
+    <div 
+      className="absolute inset-0 bg-slate-950/70 backdrop-blur-xs transition-opacity"
+      onClick={() => { if (!satisIslemde) setSatisModalAcik(false); }}
+    ></div>
+
+    <div className="bg-white w-full max-w-[500px] relative shadow-2xl flex flex-col overflow-hidden rounded-t-2xl md:rounded-2xl z-10 animate-in slide-in-from-bottom-6 duration-200">
+      
+      {/* Başlık Başlangıcı */}
+      <div className="p-4 border-b border-slate-100 flex justify-between items-center bg-slate-50">
+        <div>
+          <span className="text-[9px] font-bold text-blue-600 uppercase tracking-wider">Katalog Hızlı Satış</span>
+          <h3 className="text-sm font-black text-slate-800 uppercase font-mono">{satisYapilacakUrun.urunkodu}</h3>
+        </div>
+        <button 
+          onClick={() => setSatisModalAcik(false)}
+          disabled={satisIslemde}
+          className="text-slate-400 hover:text-slate-600 text-sm font-bold p-1"
+        >✕</button>
+      </div>
+
+      <form onSubmit={handleSatisKaydet} className="p-4 space-y-4">
+        
+        {/* CARİ / MÜŞTERİ SEÇİM ALANI (Arama Barından İzole) */}
+        <div className="relative">
+          <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Müşteri / Cari Seçimi</label>
+          
+          {!seciliSatisCarisi ? (
+            <>
+              <input
+                type="text"
+                value={cariAramaMetni}
+                onChange={(e) => { setCariAramaMetni(e.target.value); setCariOneriGoster(true); }}
+                onFocus={() => setCariOneriGoster(true)}
+                placeholder="Müşteri adı yazın (En az 2 harf)..."
+                className="w-full p-2.5 text-xs font-semibold border border-slate-200 rounded-lg focus:outline-hidden focus:border-blue-500"
+                required
+              />
+              {/* Öneri Listesi Dropdown */}
+              {cariOneriGoster && bulunanCariler.length > 0 && (
+                <div className="absolute left-0 right-0 mt-1 bg-white border border-slate-200 shadow-xl rounded-lg max-h-[160px] overflow-y-auto z-50 custom-scrollbar">
+                  {bulunanCariler.map((cari) => (
+                    <button
+                      key={cari.id}
+                      type="button"
+                      onClick={() => {
+                        setSeciliSatisCarisi(cari);
+                        setCariOneriGoster(false);
+                      }}
+                      className="w-full text-left p-2.5 text-xs font-bold text-slate-700 hover:bg-blue-50 border-b border-slate-50 transition-colors uppercase"
+                    >
+                      {cari.id_name}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </>
+          ) : (
+            <div className="flex items-center justify-between p-2.5 bg-blue-50 border border-blue-200 rounded-lg">
+              <span className="text-xs font-black text-blue-800 uppercase font-mono">{seciliSatisCarisi.id_name}</span>
+              <button
+                type="button"
+                onClick={() => setSeciliSatisCarisi(null)}
+                className="text-[10px] font-bold text-red-500 hover:underline px-2"
+              >
+                Değiştir
+              </button>
+            </div>
+          )}
+        </div>
+
+        {/* ÜRÜN ADI BİLGİSİ */}
+        <div>
+          <span className="block text-[9px] font-bold text-slate-400 uppercase tracking-wider">Satılacak Ürün</span>
+          <p className="text-xs font-mono font-bold text-slate-600 bg-slate-50 p-2 rounded-lg border border-slate-100 uppercase">{satisYapilacakUrun.urun}</p>
+        </div>
+
+        {/* MİKTAR & FİYAT GRID */}
+        <div className="grid grid-cols-2 gap-3">
+          <div>
+            <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Miktar (Adet)</label>
+            <input
+              type="number"
+              min="1"
+              step="1"
+              value={satisMiktar}
+              onChange={(e) => setSatisMiktar(Math.max(1, parseInt(e.target.value) || 1))}
+              className="w-full p-2.5 text-xs font-black border border-slate-200 rounded-lg focus:outline-hidden focus:border-blue-500"
+              required
+            />
+          </div>
+          <div>
+            <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Birim Fiyat (KDV Hariç)</label>
+            <input
+              type="number"
+              step="0.01"
+              min="0"
+              value={satisFiyat}
+              onChange={(e) => setSatisFiyat(Math.max(0, parseFloat(e.target.value) || 0))}
+              className="w-full p-2.5 text-xs font-black border border-slate-200 rounded-lg focus:outline-hidden focus:border-blue-500 font-mono"
+              required
+            />
+          </div>
+        </div>
+
+        {/* KDV SEÇİMİ */}
+        <div>
+          <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">KDV Oranı</label>
+          <select
+            value={satisKdvOrani}
+            onChange={(e) => setSatisKdvOrani(parseInt(e.target.value))}
+            className="w-full p-2.5 text-xs font-bold border border-slate-200 rounded-lg focus:outline-hidden focus:border-blue-500 bg-white"
+          >
+            <option value={20}>%20 (Standart)</option>
+            <option value={10}>%10</option>
+            <option value={1}>%1</option>
+            <option value={0}>%0 (Muaf)</option>
+          </select>
+        </div>
+
+        {/* TOPLAM ÖZET PANELİ */}
+        <div className="p-3 bg-slate-900 text-white rounded-xl flex justify-between items-center">
+          <span className="text-[10px] font-bold uppercase tracking-widest text-slate-400">GENEL TOPLAM (KDV DAHİL)</span>
+          <span className="text-base font-black font-mono">
+            {((satisMiktar * satisFiyat) * (1 + satisKdvOrani / 100)).toLocaleString('tr-TR', { minimumFractionDigits: 2 })} TL
+          </span>
+        </div>
+
+        {/* EYLEM BUTONLARI */}
+        <div className="flex gap-2 pt-2">
+          <button
+            type="button"
+            disabled={satisIslemde}
+            onClick={() => setSatisModalAcik(false)}
+            className="flex-1 p-3 text-xs font-bold text-slate-500 bg-slate-100 hover:bg-slate-200 rounded-lg uppercase tracking-wider"
+          >
+            Vazgeç
+          </button>
+          <button
+            type="submit"
+            disabled={satisIslemde || !seciliSatisCarisi}
+            className="flex-1 p-3 text-xs font-black text-white bg-blue-600 hover:bg-blue-700 disabled:bg-slate-200 disabled:text-slate-400 rounded-lg uppercase tracking-wider flex items-center justify-center gap-1.5 shadow-sm"
+          >
+            {satisIslemde ? 'Faturaya İşleniyor...' : 'Satışı Onayla'}
+          </button>
+        </div>
+
+      </form>
+    </div>
+  </div>
+)}
 
       {/* Global CSS for Animations & Scrollbar */}
       <style jsx global>{`

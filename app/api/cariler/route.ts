@@ -1,13 +1,39 @@
 import { NextResponse } from 'next/server';
 import { getDbConnection } from '@/app/lib/db';
+import * as sql from 'mssql'; // 🚀 Eksik olma ihtimaline karşı import ekledik
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
-  const detayId = searchParams.get('detayId');   // Seçilen carinin mali fiş listesi (CariID)
+  const detayId = searchParams.get('detayId');   
   const tip = searchParams.get('tip');
+  const search = searchParams.get('search');     
 
   try {
     const pool = await getDbConnection();
+
+    // ========================================================
+    // 🚀 REVİZE ADIM: CANLI CARİ ARAMA (V_CariAnalizRaporu Üzerinden)
+    // ========================================================
+    if (search && search.trim().length >= 2) {
+      // Hata riskini sıfırlamak için zaten sisteminde çalışan V_CariAnalizRaporu'nu kullanıyoruz
+      const result = await pool.request()
+        .input('searchTerm', `%${search.trim()}%`)
+        .query(`
+          SELECT TOP 10 
+            id, 
+            id_name = firma, -- Frontend id_name beklediği için firma alanını alias ile alıyoruz
+            kodu
+          FROM [dbo].[V_CariAnalizRaporu]
+          WHERE (firma LIKE @searchTerm OR kodu LIKE @searchTerm OR CAST(id AS VARCHAR) LIKE @searchTerm)
+            AND kodu NOT LIKE '770%' -- Giderleri eliyoruz
+          ORDER BY firma ASC
+        `);
+
+      return NextResponse.json({ 
+        success: true, 
+        data: result.recordset || [] 
+      });
+    }
 
     // ========================================================
     // 1. ADIM: SEÇİLEN FATURANIN İÇİNDEKİ ÜRÜN KALEMLERİ
@@ -124,7 +150,6 @@ export async function GET(request: Request) {
         queryStr += ` AND (LOWER(firma) LIKE @tip OR LOWER(Kanali) LIKE @tip)`;
         req.input('tip', '%trendyol%');
       } else if (cleanTip === 'geciken' || cleanTip === 'riskli') {
-        // SQL seviyesinde de geciken çağrıları desteklemek için ek filtre
         queryStr += ` AND kodu NOT LIKE '770%' AND NetBakiyeTL > 0 AND ISNULL(GecikmeGunSayisi, 0) > 15`;
       } else {
         queryStr += ` AND LOWER(kodu) LIKE @tip`;
@@ -143,7 +168,7 @@ export async function GET(request: Request) {
     const result = await req.query(queryStr);
     const cariler = result.recordset || [];
 
-    // Dinamik Özet Hesaplama Bölümü (Frontend Sayacı ile Tam Uyumlu)
+    // Dinamik Özet Hesaplama Bölümü
     const ozet = {
       toplamMusteriAlacak: cariler
         .filter(c => !(c.kodu || '').startsWith('770') && (c.NetBakiyeTL || 0) > 0)
@@ -159,7 +184,6 @@ export async function GET(request: Request) {
 
       trendyolCariSayisi: cariler.filter(c => (c.Kanali || '') === 'Trendyol' || (c.firma || '').toLowerCase().includes('trendyol')).length,
       
-      // FRONTENDDEKİ 15 GÜN SINIRI İLE SENKRONİZE EDİLDİ
       riskliCariSayisi: cariler.filter(c => {
         if ((c.kodu || '').startsWith('770')) return false;
         if ((c.NetBakiyeTL || 0) <= 0) return false; 
