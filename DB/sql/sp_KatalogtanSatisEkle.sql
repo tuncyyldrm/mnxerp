@@ -1,7 +1,7 @@
 USE [ONEDB]
 GO
 
-/****** Object:  StoredProcedure [dbo].[sp_KatalogtanSatisEkle]    Script Date: 02.07.2026 17:46:42 ******/
+/****** Object:  StoredProcedure [dbo].[sp_KatalogtanSatisEkle]    Script Date: 02.07.2026 17:59:13 ******/
 SET ANSI_NULLS ON
 GO
 
@@ -9,7 +9,7 @@ SET QUOTED_IDENTIFIER ON
 GO
 
 
-CREATE OR ALTER       PROCEDURE [dbo].[sp_KatalogtanSatisEkle]
+CREATE OR ALTER         PROCEDURE [dbo].[sp_KatalogtanSatisEkle]
     @CariId INT,               
     @CariAdi NVARCHAR(255),    
     @UrunAdi NVARCHAR(255),    
@@ -27,28 +27,28 @@ BEGIN
     DECLARE @HamTutar FLOAT;
     DECLARE @KdvTutari FLOAT;
     DECLARE @ToplamTutar FLOAT;
+    
+    -- Onelee numaratör değişkenleri
+    DECLARE @YeniFaturaNo NVARCHAR(50) = N'';
+    DECLARE @SonFaturaNo NVARCHAR(50) = N'';
+    DECLARE @SayısalKısım INT = 0;
+    
     DECLARE @VarsayilanPersonelID INT = 1; 
-
     DECLARE @GuncelDolarKuru FLOAT = 1.0;
     DECLARE @GuncelEuroKuru FLOAT = 1.0;
-    
     DECLARE @AktifDonem NVARCHAR(50);
     DECLARE @FaturaAyi NVARCHAR(10);
-    
     DECLARE @TotalBorc FLOAT = 0.0;
     DECLARE @TotalAlacak FLOAT = 0.0;
     DECLARE @NetBakiye FLOAT = 0.0;
-    
     DECLARE @OneleeSaat DATETIME;
     
     SET @HamTutar = @Miktar * @BirimFiyat; 
     SET @KdvTutari = @HamTutar * (CAST(@KdvOrani AS FLOAT) / 100.0); 
     SET @ToplamTutar = @HamTutar + @KdvTutari; 
 
-    -- Onelee standartlarında saniyeli temiz 1900-01-01 saat ataması
     SET @OneleeSaat = DATEADD(day, DATEDIFF(day, GETDATE(), '19000101'), GETDATE());
 
-    -- Onelee'nin en son kullandığı aktif çalışma dönemini sistemden dinamik alıyoruz
     SELECT TOP 1 @AktifDonem = ISNULL(cdonemi, CAST(YEAR(GETDATE()) AS NVARCHAR(50))) 
     FROM [dbo].[islemkaydı] ORDER BY ikid DESC;
 
@@ -58,26 +58,40 @@ BEGIN
     SELECT TOP 1 @GuncelEuroKuru = ISNULL([kur_PS], 1.0) FROM [dbo].[doviz] WHERE [birim] = 'EUR';
 
     SELECT TOP 1 @StokOtoId = [oto] FROM [dbo].[stok] WHERE [urunkodu] = @StokKodu;
-    
     IF @StokOtoId IS NULL OR @StokOtoId = 0 SET @StokOtoId = 1;
 
     BEGIN TRY
         BEGIN TRANSACTION;
 
-        -- 1. 🎯 YENİ ARAMA STRATEJİSİ: Onelee sayaçlarını tetikleyen BelgeNo yerine, 
-        -- o güne ait, ilgili CARİ kimliğine açılmış "KATALOG" özel kodlu kaydı buluyoruz.
+        -- 1. 🔍 GÜNLÜK FATURA TAKİBİ VE KONTROLÜ
+        -- Web tarafında mükerrer ID oluşmaması için o güne ait 'KATALOG' faturasını kilitleyip çağırıyoruz.
         SELECT TOP 1 @IslemNo = ik.ikid 
         FROM [dbo].[islemkaydı] ik WITH (UPDLOCK)
         WHERE ik.id = @CariId                         
           AND ik.islemtipi = 'SATIŞ FATURASI'
           AND ik.grubu = 'SF' 
-          AND ik.ozelkod = N'KATALOG'                -- 🔒 Anahtar Filtre 1
-          AND ik.theme = N'WEB_KATALOG'              -- 🔒 Anahtar Filtre 2 (Tam İzolasyon)
+          AND ik.ozelkod = N'KATALOG'                
+          AND ik.theme = N'WEB_KATALOG'              
           AND CAST(ik.belgetarihi AS DATE) = CAST(GETDATE() AS DATE);
 
-        -- 2. Eğer o güne ait bu cariye katalog faturası açılmamışsa İLK BAŞLIĞI oluştur
+        -- 2. EĞER O GÜN BU CARİYE AİT HİÇ FATURA OLUŞMAMIŞSA (GÜNÜN İLK SİPARİŞİ)
         IF @IslemNo = 0 OR @IslemNo IS NULL
         BEGIN
+            -- Onelee'nin sistemdeki en son geçerli sayısal fatura numarasını alıyoruz
+            SELECT TOP 1 @SonFaturaNo = ISNULL(belgenumarası, N'') 
+            FROM [dbo].[islemkaydı] 
+            WHERE grubu = 'SF' 
+              AND ISNULL(belgenumarası, N'') <> N''
+              AND ISNUMERIC(belgenumarası) = 1  
+            ORDER BY ikid DESC;
+
+            IF @SonFaturaNo = N'' SET @SonFaturaNo = N'0000000001';
+
+            -- Onelee standart numaratörünü bozmadan temiz +1 artırma işlemi
+            SET @SayısalKısım = CAST(@SonFaturaNo AS INT) + 1;
+            SET @YeniFaturaNo = RIGHT('0000000000' + CAST(@SayısalKısım AS NVARCHAR(50)), LEN(@SonFaturaNo));
+
+            -- 🎯 FATURA BAŞLIĞI (Açıklama alanına 'KATALOG' basılıyor)
             INSERT INTO [dbo].[islemkaydı] (
                 id, id_ilgili, id_name, islemtipi, 
                 grubu, grubu_a,                                    
@@ -85,7 +99,7 @@ BEGIN
                 faturanumarası, faturatarihi, faturasaati,  
                 irsaliyenumarası, irsaliyetarihi, irsaliyesaati,  
                 vadetarihi, vadesaati,                             
-                isyeri, cdonemi, personel, ozelkod,                                          
+                isyeri, ack, personel, cdonemi, ozelkod,                                          
                 kapat, isk_oranı, isk_tutarı, isk_tevkifat, theme, cardid, 
                 TDH_STATU, belge_dovizi, Kur_USD, Kur_EUR, 
                 TT, TA, BB, AB, BB_TL, AB_TL, 
@@ -95,12 +109,12 @@ BEGIN
                 @CariId, 0, CAST(@CariAdi AS VARCHAR(500)), 
                 'SATIŞ FATURASI', 
                 'SF', 'SF',                                        
-                N'', CAST(GETDATE() AS DATE), @OneleeSaat,       -- 🎯 belgenumarası temizlendi (N'')
-                N'', NULL, NULL,                                 -- 🎯 faturanumarası temizlendi (N'')
-                N'', NULL, NULL,                                 -- 🎯 irsaliyenumarası temizlendi (N'')
+                @YeniFaturaNo, CAST(GETDATE() AS DATE), @OneleeSaat,   
+                @YeniFaturaNo, CAST(GETDATE() AS DATE), @OneleeSaat,   
+                @YeniFaturaNo, CAST(GETDATE() AS DATE), @OneleeSaat,   
                 CAST(GETDATE() AS DATE), @OneleeSaat,          
-                '1', @AktifDonem, @VarsayilanPersonelID, N'KATALOG',
-                NULL, 0.0, 0.0, 0.0, N'WEB_KATALOG', NULL,       -- 🎯 theme alanı işaretlendi
+                '1', N'KATALOG', @VarsayilanPersonelID, @AktifDonem, N'KATALOG', -- 🎯 Açıklama: 'KATALOG'
+                NULL, 0.0, 0.0, 0.0, N'WEB_KATALOG', NULL,       
                 '0', 'TL', 
                 @GuncelDolarKuru,        
                 @GuncelEuroKuru,         
@@ -117,16 +131,18 @@ BEGIN
         END
         ELSE
         BEGIN
-            -- 3. Aynı cari gün içinde tekrar bir şey alırsa mevcut faturanın tutarlarını büyüt
+            -- 3. 🎯 MEVCUT FATURA VARSA: Yeni ID üretilmez, gün içindeki ana faturanın tutarı güncellenir.
             UPDATE [dbo].[islemkaydı]
             SET TT = ISNULL(TT, 0) + @ToplamTutar,
                 BB = ISNULL(BB, 0) + @ToplamTutar,
                 BB_TL = ISNULL(BB_TL, 0) + @ToplamTutar,
-                belgesaati = @OneleeSaat
+                belgesaati = @OneleeSaat,
+                faturasaati = @OneleeSaat,
+                irsaliyesaati = @OneleeSaat
             WHERE ikid = @IslemNo;
         END
 
-        -- 4. FATURA SATIRI EKLEME 
+        -- 4. FATURA SATIRI EKLEME (Her yeni gelen ürün bu faturaya satır olarak eklenir)
         INSERT INTO [dbo].[islem] (
             islemnumarası, oto, birimfiyat, birimfiyat_Doviz, birim, birim_kodu, alısmiktar, satısmiktar, 
             kdvoranı, kdv, otvoranı, otv, iskontooranı, iskonto, 
@@ -180,7 +196,7 @@ BEGIN
 
         COMMIT TRANSACTION;
 
-        SELECT 1 AS [Success], N'Günlük kümülatif katalog faturasına ürün başarıyla işlendi ve Onelee şablonu izole edildi.' AS [Message], @IslemNo AS [IslemNo];
+        SELECT 1 AS [Success], N'Satış işlendi. Açıklama KATALOG yapıldı, mevcut fatura ID korundu.' AS [Message], @IslemNo AS [IslemNo];
 
     END TRY
     BEGIN CATCH
