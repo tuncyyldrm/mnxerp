@@ -1,12 +1,13 @@
 USE [ONEDB]
 GO
 
-/****** Object:  StoredProcedure [dbo].[sp_KatalogtanSatisEkle]    Script Date: 02.07.2026 17:15:13 ******/
+/****** Object:  StoredProcedure [dbo].[sp_KatalogtanSatisEkle]    Script Date: 02.07.2026 17:36:14 ******/
 SET ANSI_NULLS ON
 GO
 
 SET QUOTED_IDENTIFIER ON
 GO
+
 
 CREATE OR ALTER   PROCEDURE [dbo].[sp_KatalogtanSatisEkle]
     @CariId INT,               
@@ -45,7 +46,7 @@ BEGIN
     SET @KdvTutari = @HamTutar * (CAST(@KdvOrani AS FLOAT) / 100.0); 
     SET @ToplamTutar = @HamTutar + @KdvTutari; 
     
-    -- 🎯 GÜNLÜK KÜMÜLATİF MANTIK: Fatura ID sadece tarihe bağlıdır.
+    -- 🎯 KÜMÜLATİF BAĞLANTI ANAHTARI: Belge numarası KAT- kalıyor
     SET @BelgeNo = N'KAT-' + REPLACE(CONVERT(VARCHAR, GETDATE(), 112), '-', '');
 
     -- Onelee standartlarında saniyeli temiz 1900-01-01 saat ataması
@@ -67,23 +68,25 @@ BEGIN
     BEGIN TRY
         BEGIN TRANSACTION;
 
-        -- 1. O güne ait, ilgili CARİ kimliğine açılmış katalog faturasını kontrol et
+        -- 1. O güne ait, ilgili CARİ kimliğine ve ozelkoduna ait faturayı kontrol et
+        -- 🔒 Güvenlik kilidi: Sadece 'KATALOG' özel kodlu ve ilgili BelgeNo'lu faturayı ara
         SELECT TOP 1 @IslemNo = ik.ikid 
         FROM [dbo].[islemkaydı] ik WITH (UPDLOCK)
-        WHERE ik.id = @CariId                         -- 🎯 Cari Filtresi (İzolasyonu Sağlar)
+        WHERE ik.id = @CariId                         
           AND ik.islemtipi = 'SATIŞ FATURASI'
           AND ik.grubu = 'SF' 
           AND ik.belgenumarası = @BelgeNo
+          AND ik.ozelkod = N'KATALOG'
           AND CAST(ik.belgetarihi AS DATE) = CAST(GETDATE() AS DATE);
 
-        -- 2. Eğer o güne ait bu cariye kayıt açılmamışsa İLK BAŞLIĞI oluştur
+        -- 2. Eğer o güne ait bu cariye katalog faturası açılmamışsa İLK BAŞLIĞI oluştur
         IF @IslemNo = 0 OR @IslemNo IS NULL
         BEGIN
             INSERT INTO [dbo].[islemkaydı] (
                 id, id_ilgili, id_name, islemtipi, 
                 grubu, grubu_a,                                    
                 belgenumarası, belgetarihi, belgesaati, 
-                faturanumarası, faturatarihi, faturasaati,
+                faturanumarası, faturatarihi, faturasaati,  -- 👈 Bu üç alan güncellendi
                 irsaliyenumarası, irsaliyetarihi, irsaliyesaati,  
                 vadetarihi, vadesaati,                             
                 isyeri, cdonemi, personel, ozelkod,                                          
@@ -97,8 +100,8 @@ BEGIN
                 'SATIŞ FATURASI', 
                 'SF', 'SF',                                        
                 @BelgeNo, CAST(GETDATE() AS DATE), @OneleeSaat, 
-                @BelgeNo, CAST(GETDATE() AS DATE), @OneleeSaat, 
-                @BelgeNo, CAST(GETDATE() AS DATE), @OneleeSaat, 
+                N'', NULL, NULL,  -- 🎯 ÇÖZÜM: Fatura numarası boş ve tarihi NULL. Onelee numaratörünü bozmaz!
+                N'', NULL, NULL,  
                 CAST(GETDATE() AS DATE), @OneleeSaat,          
                 '1', @AktifDonem, @VarsayilanPersonelID, N'KATALOG',
                 NULL, 0.0, 0.0, 0.0, NULL, NULL,
@@ -123,12 +126,11 @@ BEGIN
             SET TT = ISNULL(TT, 0) + @ToplamTutar,
                 BB = ISNULL(BB, 0) + @ToplamTutar,
                 BB_TL = ISNULL(BB_TL, 0) + @ToplamTutar,
-                belgesaati = @OneleeSaat,
-                faturasaati = @OneleeSaat
+                belgesaati = @OneleeSaat
             WHERE ikid = @IslemNo;
         END
 
-        -- 4. FATURA SATIRI EKLEME (Her yeni ürün yeni satır olarak faturaya girer)
+        -- 4. FATURA SATIRI EKLEME 
         INSERT INTO [dbo].[islem] (
             islemnumarası, oto, birimfiyat, birimfiyat_Doviz, birim, birim_kodu, alısmiktar, satısmiktar, 
             kdvoranı, kdv, otvoranı, otv, iskontooranı, iskonto, 
@@ -182,7 +184,7 @@ BEGIN
 
         COMMIT TRANSACTION;
 
-        SELECT 1 AS [Success], N'Günlük kümülatif katalog faturasına ürün başarıyla işlendi.' AS [Message], @IslemNo AS [IslemNo];
+        SELECT 1 AS [Success], N'Günlük kümülatif katalog faturasına ürün başarıyla işlendi ve Onelee sayacı korundu.' AS [Message], @IslemNo AS [IslemNo];
 
     END TRY
     BEGIN CATCH
