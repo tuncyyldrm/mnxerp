@@ -1,14 +1,15 @@
 USE [ONEDB]
 GO
 
-/****** Object:  StoredProcedure [dbo].[sp_KatalogtanSatisEkle]    Script Date: 02.07.2026 16:30:13 ******/
+/****** Object:  StoredProcedure [dbo].[sp_KatalogtanSatisEkle]    Script Date: 02.07.2026 17:10:24 ******/
 SET ANSI_NULLS ON
 GO
 
 SET QUOTED_IDENTIFIER ON
 GO
 
-CREATE OR ALTER   PROCEDURE [dbo].[sp_KatalogtanSatisEkle]
+
+CREATE OR ALTER     PROCEDURE [dbo].[sp_KatalogtanSatisEkle]
     @CariId INT,               
     @CariAdi NVARCHAR(255),    
     @UrunAdi NVARCHAR(255),    
@@ -16,7 +17,8 @@ CREATE OR ALTER   PROCEDURE [dbo].[sp_KatalogtanSatisEkle]
     @Miktar FLOAT,             
     @BirimFiyat FLOAT,         
     @KdvOrani INT = 20,        
-    @Birim NVARCHAR(50) = N'ADET'
+    @Birim NVARCHAR(50) = N'ADET',
+    @SiparisNo NVARCHAR(50) = NULL -- 💡 İSTEĞE BAĞLI: Dışarıdan benzersiz sipariş ID göndermek istersen
 AS
 BEGIN
     SET NOCOUNT ON;
@@ -35,26 +37,35 @@ BEGIN
     DECLARE @AktifDonem NVARCHAR(50);
     DECLARE @FaturaAyi NVARCHAR(10);
     
-    -- Onelee dinamik bakiye hesaplama değişkenleri
     DECLARE @TotalBorc FLOAT = 0.0;
     DECLARE @TotalAlacak FLOAT = 0.0;
     DECLARE @NetBakiye FLOAT = 0.0;
+    
+    DECLARE @OneleeSaat DATETIME;
     
     SET @HamTutar = @Miktar * @BirimFiyat; 
     SET @KdvTutari = @HamTutar * (CAST(@KdvOrani AS FLOAT) / 100.0); 
     SET @ToplamTutar = @HamTutar + @KdvTutari; 
     
-    -- 'KAT-' formatında benzersiz belge ve fatura numarası üretimi
-    SET @BelgeNo = N'KAT-' + REPLACE(CONVERT(VARCHAR, GETDATE(), 112), '-', '');
+    -- 🎯 Eğer dışarıdan bir sipariş numarası gelmemişse zamana bağlı benzersiz numara üret
+    IF @SiparisNo IS NULL OR @SiparisNo = ''
+    BEGIN
+        SET @BelgeNo = N'KAT-' + REPLACE(CONVERT(VARCHAR, GETDATE(), 112), '-', '') + '-' + REPLACE(CONVERT(VARCHAR, GETDATE(), 108), ':', '');
+    END
+    ELSE
+    BEGIN
+        SET @BelgeNo = N'KAT-' + @SiparisNo;
+    END
+
+    -- Onelee standartlarında saniyeli temiz 1900-01-01 saat ataması
+    SET @OneleeSaat = DATEADD(day, DATEDIFF(day, GETDATE(), '19000101'), GETDATE());
 
     -- Onelee'nin en son kullandığı aktif çalışma dönemini sistemden dinamik alıyoruz
     SELECT TOP 1 @AktifDonem = ISNULL(cdonemi, CAST(YEAR(GETDATE()) AS NVARCHAR(50))) 
     FROM [dbo].[islemkaydı] ORDER BY ikid DESC;
 
-    -- Ay formatını garantiye alıyoruz
     SET @FaturaAyi = CAST(MONTH(GETDATE()) AS NVARCHAR(10));
 
-    -- Döviz kurlarını çekiyoruz
     SELECT TOP 1 @GuncelDolarKuru = ISNULL([kur_PS], 1.0) FROM [dbo].[doviz] WHERE [birim] = 'USD';
     SELECT TOP 1 @GuncelEuroKuru = ISNULL([kur_PS], 1.0) FROM [dbo].[doviz] WHERE [birim] = 'EUR';
 
@@ -65,21 +76,20 @@ BEGIN
     BEGIN TRY
         BEGIN TRANSACTION;
 
-        -- 1. Orijinal 'SF' grubu üzerinden ama bizim 'KAT-' numaramızla bugünün faturasını kontrol ediyoruz
+        -- 1. İlgili belge numarasına ait faturanın varlığını kontrol et
         SELECT TOP 1 @IslemNo = ik.ikid 
         FROM [dbo].[islemkaydı] ik WITH (UPDLOCK)
         WHERE ik.id = @CariId 
           AND ik.islemtipi = 'SATIŞ FATURASI'
-          AND ik.grubu = 'SF' -- 🎯 Orijinal grup kodu
-          AND ik.belgenumarası = @BelgeNo 
-          AND CAST(ik.belgetarihi AS DATE) = CAST(GETDATE() AS DATE);
+          AND ik.grubu = 'SF' 
+          AND ik.belgenumarası = @BelgeNo;
 
-        -- 2. Eğer o güne ait katalog faturası yoksa YENİ BAŞLIK açıyoruz
+        -- 2. Eğer bu benzersiz belge numarasıyla fatura yoksa YENİ BAŞLIK aç
         IF @IslemNo = 0 OR @IslemNo IS NULL
         BEGIN
             INSERT INTO [dbo].[islemkaydı] (
                 id, id_ilgili, id_name, islemtipi, 
-                grubu, grubu_a,                                    -- 🎯 Orijinal 'SF' yapıldı, listelerde çıksın diye
+                grubu, grubu_a,                                    
                 belgenumarası, belgetarihi, belgesaati, 
                 faturanumarası, faturatarihi, faturasaati,
                 irsaliyenumarası, irsaliyetarihi, irsaliyesaati,  
@@ -94,10 +104,10 @@ BEGIN
                 @CariId, 0, CAST(@CariAdi AS VARCHAR(500)), 
                 'SATIŞ FATURASI', 
                 'SF', 'SF',                                        
-                @BelgeNo, CAST(GETDATE() AS DATE), CAST('1900-01-01 ' + CONVERT(VARCHAR, GETDATE(), 108) AS DATETIME), 
-                @BelgeNo, CAST(GETDATE() AS DATE), CAST('1900-01-01 ' + CONVERT(VARCHAR, GETDATE(), 108) AS DATETIME), 
-                @BelgeNo, CAST(GETDATE() AS DATE), CAST('1900-01-01 ' + CONVERT(VARCHAR, GETDATE(), 108) AS DATETIME), 
-                CAST(GETDATE() AS DATE), CAST('1900-01-01 ' + CONVERT(VARCHAR, GETDATE(), 108) AS DATETIME),          
+                @BelgeNo, CAST(GETDATE() AS DATE), @OneleeSaat, 
+                @BelgeNo, CAST(GETDATE() AS DATE), @OneleeSaat, 
+                @BelgeNo, CAST(GETDATE() AS DATE), @OneleeSaat, 
+                CAST(GETDATE() AS DATE), @OneleeSaat,          
                 '1', @AktifDonem, @VarsayilanPersonelID, N'KATALOG',
                 NULL, 0.0, 0.0, 0.0, NULL, NULL,
                 '0', 'TL', 
@@ -107,7 +117,7 @@ BEGIN
                 'B',                     
                 @ToplamTutar, 0.0, @ToplamTutar, 0.0, 
                 CAST(GETDATE() AS DATE), 
-                CAST('1900-01-01 ' + CONVERT(VARCHAR, GETDATE(), 108) AS DATETIME),
+                @OneleeSaat,
                 UPPER(LEFT(REPLACE(NEWID(), '-', ''), 24)), 
                 CAST(NEWID() AS VARCHAR(40)) 
             );
@@ -116,7 +126,7 @@ BEGIN
         END
         ELSE
         BEGIN
-            -- 3. Mevcut faturaya ekleme yapılıyorsa kümülatif toplamları büyütüyoruz
+            -- Eğer aynı siparişe ait ikinci/üçüncü ürün ekleniyorsa üst başlığı güncelle
             UPDATE [dbo].[islemkaydı]
             SET TT = ISNULL(TT, 0) + @ToplamTutar,
                 BB = ISNULL(BB, 0) + @ToplamTutar,
@@ -124,7 +134,7 @@ BEGIN
             WHERE ikid = @IslemNo;
         END
 
-        -- 4. FATURA SATIRI EKLEME
+        -- 3. FATURA SATIRI EKLEME
         INSERT INTO [dbo].[islem] (
             islemnumarası, oto, birimfiyat, birimfiyat_Doviz, birim, birim_kodu, alısmiktar, satısmiktar, 
             kdvoranı, kdv, otvoranı, otv, iskontooranı, iskonto, 
@@ -146,11 +156,11 @@ BEGIN
             @FaturaAyi, @IslemNo, 'MERKEZ', 'S', 1, 'TL', 
             @HamTutar,           
             CAST(GETDATE() AS DATE), 
-            CAST('1900-01-01 ' + CONVERT(VARCHAR, GETDATE(), 108) AS DATETIME), 
+            @OneleeSaat, 
             CAST(GETDATE() AS DATETIME), @BirimFiyat, 'SNC'
         );
 
-        -- 5. STOK DÜŞÜRME ADIMI
+        -- 4. STOK DÜŞÜRME ADIMI
         IF @StokOtoId > 1
         BEGIN
             UPDATE [dbo].[stok]
@@ -161,39 +171,24 @@ BEGIN
             WHERE [oto] = @StokOtoId;
         END
 
-        -- 6. ONELEE NET BAKİYE STRATEJİSİ
-        -- Borç hareketlerinin yönüne (TA = 'B') göre kümülatif toplam
-        SELECT @TotalBorc = ISNULL(SUM(BB_TL), 0.0) 
-        FROM [dbo].[islemkaydı] 
-        WHERE id = @CariId AND TA = 'B';
+        -- 5. ONELEE NET BAKİYE STRATEJİSİ
+        SELECT @TotalBorc = ISNULL(SUM(BB_TL), 0.0) FROM [dbo].[islemkaydı] WHERE id = @CariId AND TA = 'B';
+        SELECT @TotalAlacak = ISNULL(SUM(AB_TL), 0.0) FROM [dbo].[islemkaydı] WHERE id = @CariId AND TA = 'A';
 
-        -- Alacak hareketlerinin yönüne (TA = 'A') göre kümülatif toplam
-        SELECT @TotalAlacak = ISNULL(SUM(AB_TL), 0.0) 
-        FROM [dbo].[islemkaydı] 
-        WHERE id = @CariId AND TA = 'A';
-
-        -- Net kalan bakiye hesabı
         SET @NetBakiye = @TotalBorc - @TotalAlacak;
 
-        -- Cari bakiye alanlarının eşitlenmesi
         IF @NetBakiye >= 0
         BEGIN
-            UPDATE [dbo].[cari]
-            SET BB_TL = @NetBakiye,
-                AB_TL = 0.0
-            WHERE [id] = @CariId;
+            UPDATE [dbo].[cari] SET BB_TL = @NetBakiye, AB_TL = 0.0 WHERE [id] = @CariId;
         END
         ELSE
         BEGIN
-            UPDATE [dbo].[cari]
-            SET BB_TL = 0.0,
-                AB_TL = ABS(@NetBakiye)
-            WHERE [id] = @CariId;
+            UPDATE [dbo].[cari] SET BB_TL = 0.0, AB_TL = ABS(@NetBakiye) WHERE [id] = @CariId;
         END
 
         COMMIT TRANSACTION;
 
-        SELECT 1 AS [Success], N'Ürün başarıyla faturaya eklendi (SF) ve tüm Onelee raporlarıyla senkronize edildi.' AS [Message], @IslemNo AS [IslemNo];
+        SELECT 1 AS [Success], N'Ayrıştırılmış katalog faturası başarıyla işlendi.' AS [Message], @IslemNo AS [IslemNo];
 
     END TRY
     BEGIN CATCH
