@@ -22,7 +22,7 @@ export async function GET(request: Request) {
         return NextResponse.json({ success: false, error: 'Geçersiz İşlem No' }, { status: 400 });
       }
 
-      // Yenilenen vw_FaturaDetayRaporu üzerinden tertemiz alt sorgusuz detay çekimi
+      // Değişiklik: FaturaTarihi alanını doğrudan string (YYYY-MM-DD HH:MI:SS) formatına çevirdik
       const result = await pool.request()
         .input('IslemNo', numericId) 
         .input('IslemTipi', tip || '') 
@@ -39,7 +39,7 @@ export async function GET(request: Request) {
             Birim,
             CariAdi,
             IslemTipi,
-            FaturaTarihi AS IslemTarihi,
+            CONVERT(VARCHAR(19), FaturaTarihi, 120) AS IslemTarihi,
             BelgeNo,
             FaturaToplamTutar,
             FaturaNotu,
@@ -97,12 +97,14 @@ export async function GET(request: Request) {
     // 2. ANA FATURA LİSTESİ SORGUSU (Çoklu Satır Listeleme)
     // ========================================================
     else {
+      // Değişiklik: GROUP BY yapısını bozmamak ve veriyi korumak için 
+      // CONVERT işlemini doğrudan SELECT kısmında metinleştirerek çektik.
       let queryStr = `
         SELECT 
           IslemNo,
           MAX(CariAdi) AS CariAdi,
           IslemTipi,
-          FaturaTarihi AS Tarih,
+          CONVERT(VARCHAR(19), FaturaTarihi, 120) AS Tarih,
           MAX(FaturaToplamTutar) AS ToplamTutar, 
           MAX(FaturaNotu) AS IslemNotu,
           MAX(BelgeNo) AS BelgeNo,
@@ -131,7 +133,7 @@ export async function GET(request: Request) {
           IslemNo, 
           IslemTipi, 
           FaturaTarihi
-        ORDER BY Tarih DESC
+        ORDER BY FaturaTarihi DESC
       `;
 
       const result = await req.query(queryStr);

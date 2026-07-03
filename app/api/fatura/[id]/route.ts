@@ -34,8 +34,14 @@ export async function GET(request: Request, { params }: RouteParams) {
 
         // 3. MSSQL Sorgusu
         req.input('islemNo', sql.Int, islemNo);
+        
+        // DEĞİŞİKLİK: FaturaTarihi alanını doğrudan string olarak (CONVERT ile) çekiyoruz 
+        // Böylece Node.js Date objesine çevirip zaman dilimini (+3 saat) bozamaz.
         let queryStr = `
-            SELECT * FROM [dbo].[vw_FaturaDetayRaporu] 
+            SELECT 
+                *,
+                CONVERT(VARCHAR(19), FaturaTarihi, 120) AS TemizFaturaTarihi
+            FROM [dbo].[vw_FaturaDetayRaporu] 
             WHERE IslemNo = @islemNo
         `;
 
@@ -48,12 +54,11 @@ export async function GET(request: Request, { params }: RouteParams) {
 
         // 4. Veri yoksa güvenli çıkış yap
         if (!result.recordset || result.recordset.length === 0) {
-            // Sağ panel doğrudan [] bekler, yeni sayfa nesne yapısı bekler
             if (isPanelRequest) return NextResponse.json([]);
             return NextResponse.json({ success: false, error: "Belge bulunamadı." }, { status: 404 });
         }
 
-        // İlk satırdan faturanın üst (Header) bilgilerini alıyoruz (Çünkü her satırda CariAdi, BelgeNo ortaktır)
+        // İlk satırdan faturanın üst (Header) bilgilerini alıyoruz
         const ilkSatir = result.recordset[0];
 
         // 5. Satır verilerini frontend modeline (camelCase uyumlu) map'le
@@ -72,13 +77,11 @@ export async function GET(request: Request, { params }: RouteParams) {
                 satirTutari: row.SatirTutarı !== undefined ? Number(row.SatirTutarı) : Number(row.Satirtutari || row.Tutar || 0)
             }));
 
-        // Faturanın toplam genel tutarını hesapla (Matbu kayıt yoksa satırlardan derive etsin)
+        // Faturanın toplam genel tutarını hesapla
         const toplamHesaplananTutar = gecerliSatirlar.reduce((acc, curr) => acc + curr.satirTutari, 0);
 
         // 6. ÇİFT YÖNLÜ ÇIKIŞ STRATEJİSİ
-        // Eğer istek eski sağ panel akordeonundan geldiyse saf dizi (array) fırlatıyoruz:
         if (isPanelRequest) {
-            // Sağ panel PascalCase bekliyorsa uyumluluk için:
             const pascalSatirlar = gecerliSatirlar.map(s => ({
                 UrunAdi: s.urunAdi,
                 StokKodu: s.stokKodu,
@@ -100,7 +103,8 @@ export async function GET(request: Request, { params }: RouteParams) {
                 islemNo: islemNo,
                 cariAdi: ilkSatir.CariAdi || ilkSatir.Cariadi || ilkSatir.Unvan || "Bilinmeyen Cari",
                 islemTipi: ilkSatir.IslemTipi || ilkSatir.Islemtipi || "BELGE",
-                faturaTarihi: ilkSatir.IslemTarihi || ilkSatir.FaturaTarihi || ilkSatir.Tarih || new Date().toISOString(),
+                // DEĞİŞİKLİK: SQL'den metin olarak aldığımız bozunmamış saf view saatini basıyoruz
+                faturaTarihi: ilkSatir.TemizFaturaTarihi || new Date().toISOString(),
                 belgeNo: ilkSatir.BelgeNo || ilkSatir.Belgeno || "-",
                 faturaToplamTutar: Number(ilkSatir.FaturaToplamTutar || ilkSatir.GenelToplam || toplamHesaplananTutar),
                 faturaNotu: ilkSatir.FaturaNotu || ilkSatir.Acıklama || ilkSatir.Aciklama || "",
@@ -110,13 +114,10 @@ export async function GET(request: Request, { params }: RouteParams) {
 
     } catch (err: any) {
         console.error("API SORGULAMA HATASI:", err.message);
-        
-        // Hata durumunda da akıllı davranıyoruz
         return NextResponse.json(
             { 
                 success: false, 
                 error: `Sunucu Hatası: ${err.message}`,
-                // Geriye dönük sağ panel akordeon patlamasın diye ek:
                 data: { satirlar: [] } 
             },
             { status: 500 }
