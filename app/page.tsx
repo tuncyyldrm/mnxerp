@@ -70,13 +70,14 @@ export default function Katalog() {
   const [seciliUrun, setSeciliUrun] = useState<Urun | null>(null);
 
   const [isEditing, setIsEditing] = useState(false);
-  const [editForm, setEditForm] = useState({ urun: "", Raf: "", oems: ["", "", "", "", ""] });
+  const [editForm, setEditForm] = useState({ urun: "", urunalt: "", Raf: "", oems: ["", "", "", "", ""] });
   const [isSaving, setIsSaving] = useState(false);
 
   // Düzenleme modunu açan fonksiyon
   const handleEditAç = (urun: Urun) => {
     setEditForm({
       urun: urun.urun,
+      urunalt: urun.urunalt || "",
       Raf: urun.Raf || "",
       oems: [
         urun.OEM_0 || urun.OEM || "", // Ana OEM veya OEM_0 fallback
@@ -565,7 +566,7 @@ const handleSatisKaydet = async (e: React.FormEvent) => {
 
                     <h3 className={`text-[8px] md:text-[10px] font-bold line-clamp-2 min-h-[2.5rem] leading-tight mb-3 uppercase transition-colors
                     ${durum.isYok ? 'text-slate-500' : 'text-slate-800 group-hover:text-blue-600'}`}>
-                      {item.urun}
+                      {item.urun} <p>{item.urunalt}</p>
                     </h3>
                   </div>
 
@@ -963,20 +964,35 @@ const handleSatisKaydet = async (e: React.FormEvent) => {
                     <h2 className="text-base md:text-lg font-black text-slate-900 leading-tight uppercase">
                       {seciliUrun.urunkodu}
                     </h2>
-{/* ÜRÜN ADI / AÇIKLAMASI DÜZENLEME ALANI */}
-{isEditing ? (
-  <div className="mt-2">
-    <label className="block text-[8px] font-bold text-blue-600 uppercase mb-1">Ürün Açıklaması</label>
-    <textarea
-      value={editForm.urun}
-      onChange={e => handleInputChange('urun', e.target.value)}
-      className="w-full p-2 text-xs font-mono border border-blue-300 rounded-lg bg-blue-50/30 focus:outline-hidden focus:ring-1 focus:ring-blue-500"
-      rows={2}
-    />
-  </div>
-) : (
-  <p className="text-slate-500 text-xs mt-0.5 font-mono break-words uppercase">{seciliUrun.urun}</p>
-)}
+                      {/* ÜRÜN ADI / AÇIKLAMASI DÜZENLEME ALANI */}
+                      {isEditing ? (
+                        <div className="mt-2">
+                          <label className="block text-[8px] font-bold text-blue-600 uppercase mb-1">Ürün Açıklaması</label>
+                          <textarea
+                            value={editForm.urun}
+                            onChange={e => handleInputChange('urun', e.target.value)}
+                            className="w-full p-2 text-xs font-mono border border-blue-300 rounded-lg bg-blue-50/30 focus:outline-hidden focus:ring-1 focus:ring-blue-500"
+                            rows={2}
+                          />
+                        </div>
+                      ) : (
+                        <p className="text-slate-500 text-xs mt-0.5 font-mono break-words uppercase">{seciliUrun.urun}</p>
+                      )}
+
+                                            {/* ÜRÜN ADI / AÇIKLAMASI DÜZENLEME ALANI */}
+                      {isEditing ? (
+                        <div className="mt-2">
+                          <label className="block text-[8px] font-bold text-blue-600 uppercase mb-1">Ürün Açıklaması</label>
+                          <textarea
+                            value={editForm.urunalt}
+                            onChange={e => handleInputChange('urunalt', e.target.value)}
+                            className="w-full p-2 text-xs font-mono border border-blue-300 rounded-lg bg-blue-50/30 focus:outline-hidden focus:ring-1 focus:ring-blue-500"
+                            rows={2}
+                          />
+                        </div>
+                      ) : (
+                        <p className="text-slate-500 text-xs mt-0.5 font-mono break-words uppercase">{seciliUrun.urunalt}</p>
+                      )}
                   </div>
 
                   <div className="space-y-3">
@@ -987,19 +1003,19 @@ const handleSatisKaydet = async (e: React.FormEvent) => {
                       {isEditing ? (
                         <div className="grid grid-cols-2 gap-1.5">
                           {editForm.oems.map((oem, idx) => (
-<div key={idx}>
-  {/* idx 0 ise 'OEM', değilse 'OEM-1', 'OEM-2' şeklinde dinamik isim verir */}
-  <label className="block text-[7px] text-slate-400 font-bold uppercase">
-    {idx === 0 ? 'OEM' : `OEM-${idx}`}
-  </label>
-  <input
-    type="text"
-    value={oem}
-    onChange={e => handleOemChange(idx, e.target.value)}
-    className="w-full p-1.5 text-[10px] font-semibold bg-white border border-slate-200 rounded-sm focus:outline-hidden focus:border-blue-500"
-    placeholder="Boş bırakılabilir"
-  />
-</div>
+                            <div key={idx}>
+                              {/* idx 0 ise 'OEM', değilse 'OEM-1', 'OEM-2' şeklinde dinamik isim verir */}
+                              <label className="block text-[7px] text-slate-400 font-bold uppercase">
+                                {idx === 0 ? 'OEM' : `OEM-${idx}`}
+                              </label>
+                              <input
+                                type="text"
+                                value={oem}
+                                onChange={e => handleOemChange(idx, e.target.value)}
+                                className="w-full p-1.5 text-[10px] font-semibold bg-white border border-slate-200 rounded-sm focus:outline-hidden focus:border-blue-500"
+                                placeholder="Boş bırakılabilir"
+                              />
+                            </div>
                           ))}
                         </div>
                       ) : (
