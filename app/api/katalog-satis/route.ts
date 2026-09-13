@@ -1,8 +1,16 @@
 import { NextResponse } from 'next/server';
 import { getDbConnection } from '@/app/lib/db'; 
 import * as sql from 'mssql';
+import { isSameOrigin } from '@/app/lib/request-security';
 
 export async function POST(request: Request) {
+    if (!isSameOrigin(request)) {
+        return NextResponse.json(
+            { success: false, error: 'Geçersiz istek kaynağı.' },
+            { status: 403 }
+        );
+    }
+
     try {
         const body = await request.json();
         

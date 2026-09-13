@@ -1,6 +1,5 @@
 import { NextResponse } from 'next/server';
 import { getDbConnection } from '@/app/lib/db';
-import * as sql from 'mssql'; // 🚀 Eksik olma ihtimaline karşı import ekledik
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);

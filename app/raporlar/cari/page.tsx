@@ -54,7 +54,7 @@ const getFormattedDate = (date: Date) => {
 // Statik değerler yerine hafızada dinamik olarak hesaplanan tarihler
 const bugun = new Date(); // 2026-06-18
 const ayinIlkGunu = new Date(bugun.getFullYear(), bugun.getMonth(), 1); // 2026-06-01
-let gecikengun = 30; //Geciken gün limiti
+const gecikengun = 30; //Geciken gün limiti
 // State Yapısı (Artık Tamamen Dinamik)
 const [startDate, setStartDate] = useState(getFormattedDate(ayinIlkGunu));
 const [endDate, setEndDate] = useState(getFormattedDate(bugun));

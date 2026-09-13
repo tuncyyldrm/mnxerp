@@ -2,11 +2,18 @@ const fs = require('fs');
 const path = require('path');
 const sql = require('mssql');
 
+const requiredEnv = (name) => {
+    const value = process.env[name];
+    if (!value) throw new Error(`${name} environment değişkeni tanımlı değil.`);
+    return value;
+};
+
 const config = {
-    user: 'sa',
-    password: '2026',
-    server: '127.0.0.1',
-    database: 'ONEDB',
+    user: requiredEnv('DB_USER'),
+    password: requiredEnv('DB_PASSWORD'),
+    server: requiredEnv('DB_SERVER'),
+    database: requiredEnv('DB_DATABASE'),
+    port: Number(process.env.DB_PORT || 1433),
     options: {
         encrypt: false,
         trustServerCertificate: true
@@ -195,7 +202,7 @@ async function run() {
         viewRes.recordset.forEach(v => { if(v.definition) viewMap[v.name] = v.definition; });
         spRes.recordset.forEach(p => { if(p.definition) spMap[p.name] = p.definition; });
         console.log('ℹ️ Yerel veritabanı aktif, şemalar dinamik olarak karşılaştırılıyor...');
-    } catch (err) {
+    } catch {
         console.log('⚠️ Yerel DB bağlantısı başarısız veya boş. %100 Statik Master şemalar kullanılacak.');
     }
 

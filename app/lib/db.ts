@@ -1,12 +1,18 @@
 import * as sql from 'mssql';
 
+const requiredEnv = (name: string): string => {
+    const value = process.env[name];
+    if (!value) throw new Error(`${name} environment değişkeni tanımlı değil.`);
+    return value;
+};
+
 // sql.config yerine doğrudan nesne olarak tanımlayıp geçişte tip kontrolünü esnetiyoruz
-const sqlConfig: any = {
-    user: 'sa',
-    password: '2026',
-    server: '127.0.0.1',
-    database: 'ONEDB',
-    port: 1433,
+const sqlConfig = {
+    user: requiredEnv('DB_USER'),
+    password: requiredEnv('DB_PASSWORD'),
+    server: requiredEnv('DB_SERVER'),
+    database: requiredEnv('DB_DATABASE'),
+    port: Number(process.env.DB_PORT || 1433),
     
     // Sürücünün tam olarak tanıdığı isimler ve konumlar
     connectionTimeout: 15000, // Yoğunlukta hızlı vazgeçmesi için 15sn (Hata veren yer düzeltildi)
@@ -25,7 +31,6 @@ const sqlConfig: any = {
 
 // Next.js Hot-Reload ve Global Scope için tip tanımı
 declare global {
-    // eslint-disable-next-line no-var
     var _msSqlPoolPromise: Promise<sql.ConnectionPool> | undefined;
 }
 

@@ -61,9 +61,10 @@ DB_PASSWORD=2026
 DB_SERVER=127.0.0.1
 DB_DATABASE=ONEDB
 DB_PORT=1433
+SYSTEM_SYNC_SECRET=uzun-ve-rastgele-bir-guncelleme-anahtari
 ```
 
-SQL Server bilgilerini müşterinin sistemine göre düzenleyin.
+SQL Server bilgilerini müşterinin sistemine göre düzenleyin. `SYSTEM_SYNC_SECRET`, `/system-update` ekranını ve kod/veritabanı güncelleme API'sini korur; gerçek ve tahmin edilmesi zor bir değer kullanın.
 
 ---
 
@@ -137,12 +138,12 @@ pm2 restart mnx-sunucu
 
 ---
 
-# 🗄 Veritabanı Güncelleme
+# 🗄 Sistem ve Veritabanı Güncelleme
 
-Kurulum tamamlandıktan sonra aşağıdaki adres açılarak veritabanı nesneleri oluşturulur veya güncellenir:
+Kurulum tamamlandıktan sonra aşağıdaki ekran açılarak GitHub kodu, Next.js build'i ve veritabanı nesneleri güncellenir:
 
 ```text
-http://localhost:3000/api/db-update?key=ŞİFRENİZ
+http://localhost:3000/system-update?key=ŞİFRENİZ
 ```
 
 İşlem başarılı olduğunda aşağıdakine benzer bir çıktı görülmelidir:
@@ -199,14 +200,14 @@ Her mağaza kendi görsellerini bağımsız olarak kullanabilir.
 
 ---
 
-## api/db-update
+## system-update ve api/system-sync
 
-Veritabanı güncellemelerini otomatik uygulayan servistir.
+`system-update` kullanıcı arayüzünü, `api/system-sync` ise güncelleme işlemini gerçekleştiren SSE API'sini barındırır. İşlem; kodu çeker, production build alır, `DB` altındaki SQL dosyalarını sırayla uygular ve production ortamında PM2 reload başlatır.
 
 Kullanım:
 
 ```text
-http://localhost:3000/db-update?key=ŞİFRENİZ
+http://localhost:3000/system-update?key=ŞİFRENİZ
 ```
 
 ---

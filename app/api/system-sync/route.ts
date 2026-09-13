@@ -13,8 +13,7 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const secretKey = searchParams.get('key');
     
-    // 🔐 GÜVENLİK: Öncelikli olarak .env dosyasından oku, yoksa fallback kullan
-    const GUVENLIK_ANAHTARI = process.env.SYSTEM_SYNC_SECRET || "MNXERP_2026_Beta_X4897";
+    const guvenlikAnahtari = process.env.SYSTEM_SYNC_SECRET;
 
     const responseStream = new TransformStream();
     const writer = responseStream.writable.getWriter();
@@ -26,11 +25,11 @@ export async function GET(request: NextRequest) {
     };
 
     (async () => {
-        let isDevMode = process.env.NODE_ENV === 'development';
+        const isDevMode = process.env.NODE_ENV === 'development';
         let basariliSorguSayisi = 0;
 
         try {
-            if (!secretKey || secretKey !== GUVENLIK_ANAHTARI) {
+            if (!guvenlikAnahtari || !secretKey || secretKey !== guvenlikAnahtari) {
                 await sendProgress('error', 'Yetkisiz erişim denemesi! Güvenlik anahtarı geçersiz.', 0);
                 await writer.close();
                 return;
@@ -41,9 +40,14 @@ export async function GET(request: NextRequest) {
             // ----------------------------------------------------
             await sendProgress('loading', '💾 Aşama 1/4: GitHub üzerinden en son kodlar çekiliyor...', 15);
             try {
+                const workingTree = await execPromise('git status --porcelain --untracked-files=all', { cwd: process.cwd() });
+                if (workingTree.stdout.trim()) {
+                    throw new Error('Sunucudaki çalışma ağacı temiz değil. Yerel değişiklikler korunmak için güncelleme durduruldu.');
+                }
+
                 await execPromise('git fetch origin main', { cwd: process.cwd() });
-                await execPromise('git reset --hard origin/main', { cwd: process.cwd() });
-                await sendProgress('loading', '✅ Kod çekme işlemi başarılı. Dosya bütünlüğü sağlandı.', 30);
+                await execPromise('git merge --ff-only origin/main', { cwd: process.cwd() });
+                await sendProgress('loading', '✅ Kodlar fast-forward olarak güncellendi. Yerel dosyalar korunuyor.', 30);
             } catch (gitError: any) {
                 await sendProgress('error', `❌ Git Hatası! Detay: ${gitError?.message || gitError}`, 30);
                 await writer.close();
@@ -100,7 +104,7 @@ export async function GET(request: NextRequest) {
                         .filter(Boolean);
 
                     for (let i = 0; i < sqlQueries.length; i++) {
-                        let singleQuery = sqlQueries[i];
+                        const singleQuery = sqlQueries[i];
                         if (singleQuery.toUpperCase() === 'GO') continue;
 
                         try {
@@ -136,7 +140,7 @@ export async function GET(request: NextRequest) {
             try {
                 await sendProgress('error', `❌ Kritik Hata! Detay: ${globalError?.message || globalError}`, 0);
                 await writer.close();
-            } catch (e) {}
+            } catch {}
             return;
         }
 

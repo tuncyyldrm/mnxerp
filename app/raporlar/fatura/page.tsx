@@ -40,7 +40,7 @@ const formatDate = (dateStr: string) => {
     return new Date(dateStr).toLocaleDateString('tr-TR', {
       year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit'
     });
-  } catch (e) { return dateStr; }
+  } catch { return dateStr; }
 };
 
 const getCurrentWeekRange = () => {
@@ -122,7 +122,7 @@ export default function FaturaPaneli() {
     fetchData(freshWeek.start, freshWeek.end);
   };
 
-  const toggleDetay = async (uniqueId: string, islemNo: number, islemTipi: string) => {
+  const toggleDetay = async (uniqueId: string, islemNo: number) => {
     if (expandedId === uniqueId) {
       setExpandedId(null);
       return;
@@ -428,7 +428,7 @@ export default function FaturaPaneli() {
                       return (
                         <Fragment key={fatura.Id}>
                           <tr 
-                            onClick={() => toggleDetay(fatura.Id, fatura.IslemNo, fatura.IslemTipi)}
+                            onClick={() => toggleDetay(fatura.Id, fatura.IslemNo)}
                             className={`group hover:bg-blue-50/20 transition-colors cursor-pointer ${isExpanded ? 'bg-blue-50/40' : ''}`}
                           >
                             <td className="p-4 text-center">

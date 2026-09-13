@@ -61,7 +61,7 @@ function SystemUpdateContent() {
         if (data.status === 'error') {
           eventSource.close();
         }
-      } catch (err) {
+      } catch {
         setStatus('error');
         setCurrentStepText('❌ Canlı veri akışı çözümlenirken hata oluştu.');
         setLogs((prevLogs) => [

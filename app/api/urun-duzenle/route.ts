@@ -2,6 +2,7 @@
 import { NextResponse, NextRequest } from 'next/server';
 import * as sql from 'mssql';
 import { getDbConnection } from '@/app/lib/db'; // db.ts dosyanızın yolu
+import { isSameOrigin } from '@/app/lib/request-security';
 
 interface UrunDuzenleBody {
   urunKodu: string;
@@ -11,6 +12,13 @@ interface UrunDuzenleBody {
 }
 
 export async function POST(req: NextRequest) {
+  if (!isSameOrigin(req)) {
+    return NextResponse.json(
+      { error: 'Geçersiz istek kaynağı.' },
+      { status: 403 }
+    );
+  }
+
   try {
     const body = (await req.json()) as UrunDuzenleBody;
     const { urunKodu, urunAd, raf, oems } = body;
