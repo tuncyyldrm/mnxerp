@@ -139,19 +139,46 @@ export async function GET(request: Request) {
     // ========================================================
     // 3. ADIM: ANA CARİ ÖZET PANELİ & TABLO LİSTESİ
     // ========================================================
-    let queryStr = `SELECT * FROM [dbo].[V_CariAnalizRaporu] WHERE 1=1`;
+    let queryStr = `
+      SELECT 
+        v.id,
+        v.kodu,
+        v.firma,
+        v.sehir,
+        v.CariTipi,
+        v.NetBakiyeTL,
+        v.Kanali,
+        CONVERT(VARCHAR(10), v.SonIslemTarihi, 120) AS SonIslemTarihi,
+        ISNULL(v.GecikmeGunSayisi, 0) AS GecikmeGunSayisi,
+        c.tel1,
+        c.tel2,
+        c.email,
+        c.ilgili AS yetkili,
+        c.adresi,
+        c.vergidairesi,
+        c.vergino,
+        CASE 
+          WHEN ISNULL(v.GecikmeGunSayisi, 0) <= 30 THEN 'GUNCEL'
+          WHEN ISNULL(v.GecikmeGunSayisi, 0) <= 60 THEN 'DIKKAT'
+          WHEN ISNULL(v.GecikmeGunSayisi, 0) <= 90 THEN 'KRITIK'
+          ELSE 'YUKSEK_RISK'
+        END AS riskSeviyesi
+      FROM [dbo].[V_CariAnalizRaporu] v WITH (NOLOCK)
+      LEFT JOIN [dbo].[cari] c WITH (NOLOCK) ON v.id = c.id
+      WHERE 1=1
+    `;
     const req = pool.request();
 
     if (tip && tip.trim() !== '') {
       const cleanTip = tip.toLowerCase().trim();
       
       if (cleanTip === 'trendyol') {
-        queryStr += ` AND (LOWER(firma) LIKE @tip OR LOWER(Kanali) LIKE @tip)`;
+        queryStr += ` AND (LOWER(v.firma) LIKE @tip OR LOWER(v.Kanali) LIKE @tip)`;
         req.input('tip', '%trendyol%');
       } else if (cleanTip === 'geciken' || cleanTip === 'riskli') {
-        queryStr += ` AND kodu NOT LIKE '770%' AND NetBakiyeTL > 0 AND ISNULL(GecikmeGunSayisi, 0) > 15`;
+        queryStr += ` AND v.kodu NOT LIKE '770%' AND v.NetBakiyeTL > 0 AND ISNULL(v.GecikmeGunSayisi, 0) > 15`;
       } else {
-        queryStr += ` AND LOWER(kodu) LIKE @tip`;
+        queryStr += ` AND LOWER(v.kodu) LIKE @tip`;
         
         let dbTip = '%770%'; 
         if (cleanTip.includes('musteri') || cleanTip === '120') {
@@ -163,6 +190,8 @@ export async function GET(request: Request) {
         req.input('tip', dbTip);
       }
     }
+
+    queryStr += ` ORDER BY v.NetBakiyeTL DESC`;
 
     const result = await req.query(queryStr);
     const cariler = result.recordset || [];
@@ -190,6 +219,15 @@ export async function GET(request: Request) {
         const gecikmeGunu = Number(c.GecikmeGunSayisi || 0);
         return gecikmeGunu > 30; 
       }).length,
+
+      // Yaşlandırma dilimleri
+      yaslandirma: {
+        guncelTutar: cariler.filter(c => c.NetBakiyeTL > 0 && c.riskSeviyesi === 'GUNCEL').reduce((acc, c) => acc + c.NetBakiyeTL, 0),
+        dikkatTutar: cariler.filter(c => c.NetBakiyeTL > 0 && c.riskSeviyesi === 'DIKKAT').reduce((acc, c) => acc + c.NetBakiyeTL, 0),
+        kritikTutar: cariler.filter(c => c.NetBakiyeTL > 0 && c.riskSeviyesi === 'KRITIK').reduce((acc, c) => acc + c.NetBakiyeTL, 0),
+        yuksekRiskTutar: cariler.filter(c => c.NetBakiyeTL > 0 && c.riskSeviyesi === 'YUKSEK_RISK').reduce((acc, c) => acc + c.NetBakiyeTL, 0),
+        borcluCariSayisi: cariler.filter(c => c.NetBakiyeTL > 0).length
+      },
       
       toplamCariKayıt: cariler.length
     };
@@ -199,5 +237,54 @@ export async function GET(request: Request) {
   } catch (error: any) {
     console.error("--> API HATASI:", error.message);
     return NextResponse.json({ success: false, error: error.message }, { status: 500 });
+  }
+}
+
+// ========================================================
+// 4. ADIM: CARİ BİLGİLERİNİ GÜNCELLEME (POST)
+// ========================================================
+export async function POST(request: Request) {
+  try {
+    const body = await request.json();
+    const { id, tel1, tel2, email, yetkili, adresi, sehir, vergidairesi, vergino } = body;
+
+    if (!id) {
+      return NextResponse.json({ success: false, error: 'Cari ID gereklidir.' }, { status: 400 });
+    }
+
+    const pool = await getDbConnection();
+    await pool.request()
+      .input('id', id)
+      .input('tel1', (tel1 || '').slice(0, 50))
+      .input('tel2', (tel2 || '').slice(0, 50))
+      .input('email', (email || '').slice(0, 100))
+      .input('ilgili', (yetkili || '').slice(0, 100))
+      .input('adresi', (adresi || '').slice(0, 500))
+      .input('sehir', (sehir || '').slice(0, 50))
+      .input('vergidairesi', (vergidairesi || '').slice(0, 100))
+      .input('vergino', (vergino || '').slice(0, 50))
+      .query(`
+        UPDATE [dbo].[cari]
+        SET 
+          tel1 = @tel1,
+          tel2 = @tel2,
+          email = @email,
+          ilgili = @ilgili,
+          adresi = @adresi,
+          sehir = @sehir,
+          vergidairesi = @vergidairesi,
+          vergino = @vergino,
+          UP_DATE = GETDATE()
+        WHERE id = @id
+      `);
+
+    return NextResponse.json({
+      success: true,
+      message: 'Cari bilgileri başarıyla güncellendi.'
+    });
+  } catch (error: unknown) {
+    const errorMsg = error instanceof Error ? error.message : 'Bilinmeyen hata';
+    console.error('Cari Güncelleme API Hatası:', errorMsg);
+    return NextResponse.json({ success: false, error: errorMsg }, { status: 500 });
   }
 }

@@ -85,6 +85,8 @@ export async function GET(request: NextRequest) {
                 'sp_StokDuzenle.sql',
                 'sp_UrunHareketAnaliz.sql',
                 'sp_KatalogtanSatisEkle.sql',
+                'sp_HizliTahsilatEkle.sql',
+                'sp_SayimSistemeIsle.sql',
                 'index.sql'
             ];
 

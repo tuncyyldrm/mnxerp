@@ -3,8 +3,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useState } from 'react';
 import { 
-  LayoutDashboard, Users, FileText, 
-  Layers, ShoppingCart, Sliders, Menu, X 
+  Users, FileText, Layers, Menu, X, TrendingUp, Wallet, Clock, Boxes 
 } from 'lucide-react';
 
 export default function Sidebar() {
@@ -13,9 +12,12 @@ export default function Sidebar() {
 
   // Klasör yapına göre dinamik menü listesi
   const menuItems = [
-    { name: 'Cari Raporları', href: '/raporlar/cari', icon: Users },
+    { name: 'Kâr Analizi', href: '/raporlar/kar-analiz', icon: TrendingUp },
+    { name: 'Kasa & Likidite', href: '/raporlar/kasa', icon: Wallet },
+    { name: 'Cari Yönetimi', href: '/raporlar/cari', icon: Users },
     { name: 'Fatura Raporları', href: '/raporlar/fatura', icon: FileText },
-    { name: 'Anasayfa', href: '/', icon: Layers },
+    { name: 'Depo & Raf Sayımı', href: '/depo/sayim', icon: Boxes },
+    { name: 'Anasayfa / Katalog', href: '/', icon: Layers },
   ];
 
   return (

@@ -73,6 +73,15 @@ BEGIN
 END
 GO
 
+-- NONCLUSTERED INDEX: Kâr ve Satış Analizini hızlandıran covering indeks
+IF NOT EXISTS (SELECT * FROM sys.indexes WHERE name = 'IX_Islem_KarAnaliz_Covering' AND object_id = OBJECT_ID('[dbo].[islem]'))
+BEGIN
+    CREATE NONCLUSTERED INDEX [IX_Islem_KarAnaliz_Covering]
+    ON [dbo].[islem] ([satısmiktar], [I_TYPE], [I_DATE])
+    INCLUDE ([detay_kodu], [birimfiyat], [satıstutarı], [alısmiktar], [alıstutarı]);
+END
+GO
+
 
 -- --- 2. [dbo].[stok] Tablosu ---
 
