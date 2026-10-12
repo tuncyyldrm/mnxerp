@@ -16,6 +16,7 @@ CREATE OR ALTER PROCEDURE [dbo].[sp_HizliTahsilatEkle]
 AS
 BEGIN
     SET NOCOUNT ON;
+    SET XACT_ABORT ON;
 
     DECLARE @IslemNo INT = 0;
     DECLARE @SonBelgeNo NVARCHAR(50) = N'';
@@ -67,7 +68,9 @@ BEGIN
 
         IF @SonBelgeNo = N'' SET @SonBelgeNo = N'0000000001';
         SET @SayisalKisim = CAST(@SonBelgeNo AS INT) + 1;
-        SET @YeniBelgeNo = RIGHT('0000000000' + CAST(@SayisalKisim AS NVARCHAR(50)), LEN(@SonBelgeNo));
+        DECLARE @PadLen INT = CASE WHEN LEN(@SonBelgeNo) > 10 THEN LEN(@SonBelgeNo) ELSE 10 END;
+        IF LEN(CAST(@SayisalKisim AS NVARCHAR(50))) > @PadLen SET @PadLen = LEN(CAST(@SayisalKisim AS NVARCHAR(50)));
+        SET @YeniBelgeNo = RIGHT(REPLICATE('0', @PadLen) + CAST(@SayisalKisim AS NVARCHAR(50)), @PadLen);
 
         -- 2. islemkaydı Başlığı (Tahsilat: TA = 'A', Alacak Tutarı = @Tutar)
         INSERT INTO [dbo].[islemkaydı] (

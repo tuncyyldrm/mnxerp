@@ -21,6 +21,7 @@ CREATE OR ALTER         PROCEDURE [dbo].[sp_KatalogtanSatisEkle]
 AS
 BEGIN
     SET NOCOUNT ON;
+    SET XACT_ABORT ON;
 
     DECLARE @IslemNo INT = 0;
     DECLARE @StokOtoId INT = 0; 
@@ -89,7 +90,9 @@ BEGIN
 
             -- Onelee standart numaratörünü bozmadan temiz +1 artırma işlemi
             SET @SayısalKısım = CAST(@SonFaturaNo AS INT) + 1;
-            SET @YeniFaturaNo = RIGHT('0000000000' + CAST(@SayısalKısım AS NVARCHAR(50)), LEN(@SonFaturaNo));
+            DECLARE @PadLen INT = CASE WHEN LEN(@SonFaturaNo) > 10 THEN LEN(@SonFaturaNo) ELSE 10 END;
+            IF LEN(CAST(@SayısalKısım AS NVARCHAR(50))) > @PadLen SET @PadLen = LEN(CAST(@SayısalKısım AS NVARCHAR(50)));
+            SET @YeniFaturaNo = RIGHT(REPLICATE('0', @PadLen) + CAST(@SayısalKısım AS NVARCHAR(50)), @PadLen);
 
             -- 🎯 FATURA BAŞLIĞI (Açıklama alanına 'KATALOG' basılıyor)
             INSERT INTO [dbo].[islemkaydı] (
