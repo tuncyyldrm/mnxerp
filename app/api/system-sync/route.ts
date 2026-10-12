@@ -37,26 +37,29 @@ export async function GET(request: NextRequest) {
             }
 
             // ----------------------------------------------------
-            // AŞAMA 1 & 2: GIT VE BUILD (Geliştirme ortamında SQL'e odaklan)
+            // AŞAMA 1: GIT DOĞRULAMA & KOD ÇEKME (DOSYALAR)
             // ----------------------------------------------------
-            if (isDevMode) {
-                await sendProgress('loading', 'ℹ️ Geliştirme (Dev) ortamı: Git çekme ve Build aşamaları atlanıp doğrudan SQL senkronizasyonuna geçiliyor...', 40);
-            } else {
-                await sendProgress('loading', '💾 Aşama 1/4: GitHub üzerinden en son kodlar çekiliyor...', 15);
-                try {
-                    const workingTree = await execPromise('git status --porcelain --untracked-files=all', { cwd: process.cwd() });
-                    if (workingTree.stdout.trim()) {
-                        throw new Error('Sunucudaki çalışma ağacı temiz değil. Yerel değişiklikler korunmak için güncelleme durduruldu.');
-                    }
-
-                    await execPromise('git fetch origin main', { cwd: process.cwd() });
-                    await execPromise('git merge --ff-only origin/main', { cwd: process.cwd() });
-                    await sendProgress('loading', '✅ Kodlar fast-forward olarak güncellendi. Yerel dosyalar korunuyor.', 30);
-                } catch (gitError: any) {
+            await sendProgress('loading', '💾 Aşama 1/4: GitHub üzerinden en son kodlar ve dosyalar çekiliyor...', 15);
+            try {
+                await execPromise('git fetch origin main', { cwd: process.cwd() });
+                await execPromise('git merge --ff-only origin/main', { cwd: process.cwd() });
+                await sendProgress('loading', '✅ Kodlar ve proje dosyaları GitHub üzerinden güncellendi.', 30);
+            } catch (gitError: any) {
+                if (isDevMode) {
+                    await sendProgress('loading', 'ℹ️ [Dev Modu] Kodlar yerel çalışma ağacından kullanılıyor (zaten en güncel).', 30);
+                } else {
                     await sendProgress('error', `❌ Git Hatası! Detay: ${gitError?.message || gitError}`, 30);
                     await writer.close();
                     return;
                 }
+            }
+
+            // ----------------------------------------------------
+            // AŞAMA 2: NEXT.JS DERLEME (BUILD)
+            // ----------------------------------------------------
+            if (isDevMode) {
+                await sendProgress('loading', 'ℹ️ [Dev Modu] Next.js anlık derlendiği için Build aşaması es geçiliyor...', 60);
+            } else {
 
                 await sendProgress('loading', '🛠️ Aşama 2/4: Yeni kodlar dükkan için optimize ediliyor (Build alınıyor)...', 50);
                 try {

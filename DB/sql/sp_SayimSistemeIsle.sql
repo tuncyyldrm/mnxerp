@@ -20,6 +20,7 @@ CREATE PROCEDURE dbo.sp_SayimSistemeIsle
 AS
 BEGIN
     SET NOCOUNT ON;
+    SET XACT_ABORT ON;
 
     DECLARE @SyId INT = 0;
     DECLARE @IkId INT = 0;
@@ -179,7 +180,7 @@ BEGIN
                 )
                 SELECT 
                     @IkId, @IkId, ISNULL(s.[oto], 1),
-                    s.[urunkodu], s.[urun], ISNULL(s.[birim], 'ADET'),
+                    s.[urunkodu], s.[urun], ISNULL(s.[birim1], 'ADET'),
                     -- Fark > 0 ise Alış/Giriş (Sayım Fazlası)
                     CASE WHEN (t.sayilanStok - ISNULL(s.[STK_FULL], 0)) > 0 
                          THEN (t.sayilanStok - ISNULL(s.[STK_FULL], 0)) 
