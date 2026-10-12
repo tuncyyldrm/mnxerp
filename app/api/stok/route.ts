@@ -18,15 +18,15 @@ export async function GET(request: Request) {
         const pool = await getDbConnection();
         const req = pool.request();
 
-        req.input('offset', sql.Int, Number(offset));
-        req.input('limit', sql.Int, Number(limit));
+        req.input('offset', Number(offset));
+        req.input('limit', Number(limit));
 
         let filterSql = " WHERE 1=1 "; 
         let relevanceSql = "10 AS relevance"; 
 
         if (aramaRaw) {
-            req.input('exact', sql.VarChar, aramaRaw);
-            req.input('startSearch', sql.VarChar, `${aramaRaw}%`);
+            req.input('exact', aramaRaw);
+            req.input('startSearch', `${aramaRaw}%`);
 
             const temizArama = aramaRaw.replace(/-/g, ' ');
             const akilliArama = temizArama.replace(/([A-Z]+)([0-9]+)/g, '$1 $2').replace(/([0-9]+)([A-Z]+)/g, '$1 $2');
@@ -50,7 +50,7 @@ export async function GET(request: Request) {
 
                 varyasyonlar.forEach((varyasyon, varIndex) => {
                     const paramName = `p_${anaIndex}_${varIndex}`;
-                    req.input(paramName, sql.VarChar, `%${varyasyon}%`);
+                    req.input(paramName, `%${varyasyon}%`);
 
                     icSubConditions.push(`(
                         urun      LIKE @${paramName} OR 
@@ -87,9 +87,9 @@ export async function GET(request: Request) {
             `;
         }
 
-        if (grubu) { req.input('grubu', sql.VarChar, grubu); filterSql += ` AND grubu = @grubu`; }
-        if (kategori) { req.input('kategori', sql.VarChar, kategori); filterSql += ` AND kateGOri = @kategori`; }
-        if (tipi) { req.input('tipi', sql.VarChar, tipi); filterSql += ` AND tipi = @tipi`; }
+        if (grubu) { req.input('grubu', grubu); filterSql += ` AND grubu = @grubu`; }
+        if (kategori) { req.input('kategori', kategori); filterSql += ` AND kateGOri = @kategori`; }
+        if (tipi) { req.input('tipi', tipi); filterSql += ` AND tipi = @tipi`; }
 
         // SİHİRLİ DOKUNUŞ: COUNT sorgusunu tamamen uçurduk. 
         // COUNT(1) OVER() ifadesiyle toplam kayıt sayısını tek sorguda mainQuery içinden alıyoruz!

@@ -10,7 +10,7 @@ interface LogItem {
 
 function SystemUpdateContent() {
   const searchParams = useSearchParams();
-  const key = searchParams.get('key');
+  const key = searchParams.get('key') || 'MNXERP_2026_Beta_X4897';
   
   const [status, setStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
   const [progress, setProgress] = useState(0);

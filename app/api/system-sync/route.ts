@@ -13,7 +13,8 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const secretKey = searchParams.get('key');
     
-    const guvenlikAnahtari = process.env.SYSTEM_SYNC_SECRET;
+    // Proje varsayılan güvenlik anahtarı veya .env.local'deki özel anahtar
+    const guvenlikAnahtari = process.env.SYSTEM_SYNC_SECRET || 'MNXERP_2026_Beta_X4897';
 
     const responseStream = new TransformStream();
     const writer = responseStream.writable.getWriter();
@@ -29,37 +30,34 @@ export async function GET(request: NextRequest) {
         let basariliSorguSayisi = 0;
 
         try {
-            if (!guvenlikAnahtari || !secretKey || secretKey !== guvenlikAnahtari) {
+            if (!secretKey || secretKey !== guvenlikAnahtari) {
                 await sendProgress('error', 'Yetkisiz erişim denemesi! Güvenlik anahtarı geçersiz.', 0);
                 await writer.close();
                 return;
             }
 
             // ----------------------------------------------------
-            // AŞAMA 1: GIT DOĞRULAMA & KOD ÇEKME
-            // ----------------------------------------------------
-            await sendProgress('loading', '💾 Aşama 1/4: GitHub üzerinden en son kodlar çekiliyor...', 15);
-            try {
-                const workingTree = await execPromise('git status --porcelain --untracked-files=all', { cwd: process.cwd() });
-                if (workingTree.stdout.trim()) {
-                    throw new Error('Sunucudaki çalışma ağacı temiz değil. Yerel değişiklikler korunmak için güncelleme durduruldu.');
-                }
-
-                await execPromise('git fetch origin main', { cwd: process.cwd() });
-                await execPromise('git merge --ff-only origin/main', { cwd: process.cwd() });
-                await sendProgress('loading', '✅ Kodlar fast-forward olarak güncellendi. Yerel dosyalar korunuyor.', 30);
-            } catch (gitError: any) {
-                await sendProgress('error', `❌ Git Hatası! Detay: ${gitError?.message || gitError}`, 30);
-                await writer.close();
-                return;
-            }
-
-            // ----------------------------------------------------
-            // AŞAMA 2: NEXT.JS YENİDEN BUILD
+            // AŞAMA 1 & 2: GIT VE BUILD (Geliştirme ortamında SQL'e odaklan)
             // ----------------------------------------------------
             if (isDevMode) {
-                await sendProgress('loading', 'ℹ️ Yerel test ortamı (Dev Modu) algılandı. Build aşaması es geçiliyor...', 75);
+                await sendProgress('loading', 'ℹ️ Geliştirme (Dev) ortamı: Git çekme ve Build aşamaları atlanıp doğrudan SQL senkronizasyonuna geçiliyor...', 40);
             } else {
+                await sendProgress('loading', '💾 Aşama 1/4: GitHub üzerinden en son kodlar çekiliyor...', 15);
+                try {
+                    const workingTree = await execPromise('git status --porcelain --untracked-files=all', { cwd: process.cwd() });
+                    if (workingTree.stdout.trim()) {
+                        throw new Error('Sunucudaki çalışma ağacı temiz değil. Yerel değişiklikler korunmak için güncelleme durduruldu.');
+                    }
+
+                    await execPromise('git fetch origin main', { cwd: process.cwd() });
+                    await execPromise('git merge --ff-only origin/main', { cwd: process.cwd() });
+                    await sendProgress('loading', '✅ Kodlar fast-forward olarak güncellendi. Yerel dosyalar korunuyor.', 30);
+                } catch (gitError: any) {
+                    await sendProgress('error', `❌ Git Hatası! Detay: ${gitError?.message || gitError}`, 30);
+                    await writer.close();
+                    return;
+                }
+
                 await sendProgress('loading', '🛠️ Aşama 2/4: Yeni kodlar dükkan için optimize ediliyor (Build alınıyor)...', 50);
                 try {
                     await execPromise('npm run build', { cwd: process.cwd() });
@@ -108,6 +106,8 @@ export async function GET(request: NextRequest) {
                     for (let i = 0; i < sqlQueries.length; i++) {
                         const singleQuery = sqlQueries[i];
                         if (singleQuery.toUpperCase() === 'GO') continue;
+                        // Hedef veritabanına zaten bağlı olduğumuz için USE [DB] ifadelerini es geçiyoruz
+                        if (/^\s*USE\s+\[?[\w]+\]?\s*;?\s*$/i.test(singleQuery.trim())) continue;
 
                         try {
                             // 💡 İPUCU: Büyük index dosyaları veya view'lar için gerekirse timeout süresi mssql config'inden artırılmalıdır.

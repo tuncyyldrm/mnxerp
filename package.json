@@ -6,6 +6,7 @@
     "dev": "next dev",
     "build": "next build",
     "db-pack": "node db-export.js",
+    "db:sync": "node scripts/sync_db.js",
     "start": "next start",
     "lint": "eslint"
   },
