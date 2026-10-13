@@ -71,6 +71,7 @@ export default function KarAnalizSayfasi() {
   });
 
   // Filtreler
+  const [muhtelifDahil, setMuhtelifDahil] = useState<boolean>(false);
   const [datePreset, setDatePreset] = useState<'all' | 'today' | 'thisWeek' | 'thisMonth' | 'custom'>('all');
   const [startDate, setStartDate] = useState<string>('');
   const [endDate, setEndDate] = useState<string>('');
@@ -134,6 +135,7 @@ export default function KarAnalizSayfasi() {
         const params = new URLSearchParams();
         if (startDate) params.append('baslangic', startDate);
         if (endDate) params.append('bitis', endDate);
+        if (muhtelifDahil) params.append('muhtelifDahil', 'true');
 
         const res = await fetch(`/api/analiz/kar?${params.toString()}`);
         if (!res.ok) throw new Error('Sunucudan kâr analizi verisi alınamadı.');
@@ -170,7 +172,7 @@ export default function KarAnalizSayfasi() {
     return () => {
       ignore = true;
     };
-  }, [startDate, endDate, refreshTrigger]);
+  }, [startDate, endDate, muhtelifDahil, refreshTrigger]);
 
   const handleManualRefresh = () => {
     setLoading(true);
@@ -271,8 +273,45 @@ export default function KarAnalizSayfasi() {
           </div>
         </div>
 
-        {/* TARİH HIZLI BUTONLARI VE SEÇİCİ */}
+        {/* FİLTRE VE SEÇİCİ BÖLÜMÜ */}
         <div className="flex flex-wrap items-center gap-2">
+          {/* FİZİKSEL PARÇA VS RESMİ/MUHTELİF BUTONLARI */}
+          <div className="inline-flex p-1 bg-slate-100 rounded-xl text-xs font-semibold text-slate-600">
+            <button
+              onClick={() => {
+                if (muhtelifDahil) {
+                  setLoading(true);
+                  setMuhtelifDahil(false);
+                }
+              }}
+              className={`px-3 py-1.5 rounded-lg transition-all flex items-center gap-1.5 ${
+                !muhtelifDahil
+                  ? 'bg-emerald-600 text-white shadow-xs font-bold'
+                  : 'hover:text-slate-900 text-slate-600'
+              }`}
+            >
+              <Package size={14} />
+              <span>Fiziksel Parçalar (Gerçek Kâr)</span>
+            </button>
+            <button
+              onClick={() => {
+                if (!muhtelifDahil) {
+                  setLoading(true);
+                  setMuhtelifDahil(true);
+                }
+              }}
+              className={`px-3 py-1.5 rounded-lg transition-all flex items-center gap-1.5 ${
+                muhtelifDahil
+                  ? 'bg-indigo-600 text-white shadow-xs font-bold'
+                  : 'hover:text-slate-900 text-slate-600'
+              }`}
+            >
+              <FileText size={14} />
+              <span>Resmi / Muhtelif Dahil</span>
+            </button>
+          </div>
+
+          {/* TARİH HIZLI BUTONLARI */}
           <div className="inline-flex p-1 bg-slate-100 rounded-xl text-xs font-semibold text-slate-600">
             <button
               onClick={() => {
@@ -347,6 +386,23 @@ export default function KarAnalizSayfasi() {
           </button>
         </div>
       </div>
+
+      {/* MOD BİLGİLENDİRME BANDI */}
+      {!muhtelifDahil ? (
+        <div className="flex items-center gap-2.5 px-4 py-2.5 bg-emerald-50 border border-emerald-200/80 rounded-2xl text-xs font-semibold text-emerald-800 shadow-xs">
+          <span className="flex h-2.5 w-2.5 rounded-full bg-emerald-500 animate-pulse shrink-0" />
+          <span>
+            <strong>Fiziksel Parçalar Modu:</strong> Raftaki gerçek oto yedek parçaların kârlılığı hesaplanıyor. Resmi ve sanal fatura kayıtları (0001 - Muhtelif) genel marjı bozmaması için filtrelendi.
+          </span>
+        </div>
+      ) : (
+        <div className="flex items-center gap-2.5 px-4 py-2.5 bg-amber-50 border border-amber-200/80 rounded-2xl text-xs font-semibold text-amber-800 shadow-xs">
+          <AlertTriangle size={16} className="text-amber-600 shrink-0" />
+          <span>
+            <strong>Tüm Faturalar Modu:</strong> Resmi ve sanal muhtelif fatura kayıtları dahil edildi. Sanal maliyetler genel kâr marjını eksiye çekebilir.
+          </span>
+        </div>
+      )}
 
       {/* KPI KARTLARI */}
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-4">
@@ -563,6 +619,11 @@ export default function KarAnalizSayfasi() {
                             {item.grubu && (
                               <span className="text-[10px] font-semibold text-slate-400 bg-slate-100 px-1.5 py-0.5 rounded">
                                 {item.grubu}
+                              </span>
+                            )}
+                            {(item.stokKodu === '0001' || item.urunAdi?.includes('MUHTELİF')) && (
+                              <span className="text-[10px] font-bold text-amber-700 bg-amber-100 px-1.5 py-0.5 rounded">
+                                Resmi / Sanal Fatura
                               </span>
                             )}
                           </div>

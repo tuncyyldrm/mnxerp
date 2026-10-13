@@ -7,6 +7,7 @@ export async function GET(request: Request) {
   const baslangic = searchParams.get('baslangic');
   const bitis = searchParams.get('bitis');
   const stokKodu = searchParams.get('stokKodu');
+  const muhtelifDahil = searchParams.get('muhtelifDahil') === 'true';
 
   try {
     const pool = await getDbConnection();
@@ -59,14 +60,19 @@ export async function GET(request: Request) {
     // ========================================================
     const req = pool.request();
 
-    let dateFilterWhere = '';
+    let extraFilterWhere = '';
     if (baslangic) {
-      dateFilterWhere += ` AND i.I_DATE >= @baslangic`;
+      extraFilterWhere += ` AND i.I_DATE >= @baslangic`;
       req.input('baslangic', baslangic);
     }
     if (bitis) {
-      dateFilterWhere += ` AND i.I_DATE < DATEADD(day, 1, CAST(@bitis AS DATETIME))`;
+      extraFilterWhere += ` AND i.I_DATE < DATEADD(day, 1, CAST(@bitis AS DATETIME))`;
       req.input('bitis', bitis);
+    }
+
+    // Seçenek 1: Muhtelif / Resmi fatura kalemlerini hariç tut (Varsayılan)
+    if (!muhtelifDahil) {
+      extraFilterWhere += ` AND i.detay_kodu NOT IN ('0001') AND ISNULL(i.detay, '') NOT LIKE '%MUHTELİF%' AND ISNULL(i.detay, '') NOT LIKE '%MUHTELIF%'`;
     }
 
     const queryStr = `
@@ -110,7 +116,7 @@ export async function GET(request: Request) {
       LEFT JOIN [dbo].[stok] s WITH (NOLOCK) ON i.detay_kodu = s.urunkodu
       WHERE i.satısmiktar > 0
         AND i.I_TYPE = 'S'
-        ${dateFilterWhere}
+        ${extraFilterWhere}
       GROUP BY i.detay_kodu
       ORDER BY netKar DESC
     `;
@@ -127,6 +133,7 @@ export async function GET(request: Request) {
 
     return NextResponse.json({
       success: true,
+      muhtelifDahil,
       ozet: {
         toplamCiro,
         toplamMaliyet,
