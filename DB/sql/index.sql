@@ -126,3 +126,24 @@ BEGIN
     INCLUDE (urunalt, grubu, kateGOri, tipi, Raf, fiyatı, STK_FULL, OEM_0, OEM_1, OEM_2, OEM_3);
 END
 GO
+
+
+-- --- 4. [dbo].[islemkaydı] Tablosu Performans İndeksleri ---
+
+-- Müşteri ekstresi, bakiye hesaplamaları ve hızlı satış için Cari ID indeksi
+IF NOT EXISTS (SELECT * FROM sys.indexes WHERE name = 'IX_IslemKaydi_CariId_Bakiye' AND object_id = OBJECT_ID('[dbo].[islemkaydı]'))
+BEGIN
+    CREATE NONCLUSTERED INDEX [IX_IslemKaydi_CariId_Bakiye]
+    ON [dbo].[islemkaydı] ([id], [belgetarihi], [TA])
+    INCLUDE ([ikid], [id_name], [belgesaati], [islemtipi], [grubu], [belgenumarası], [faturanumarası], [BB_TL], [AB_TL], [TT]);
+END
+GO
+
+-- Fatura numarası sorguları ve grup bazlı belge sıralama indeksi
+IF NOT EXISTS (SELECT * FROM sys.indexes WHERE name = 'IX_IslemKaydi_Grubu_BelgeNo' AND object_id = OBJECT_ID('[dbo].[islemkaydı]'))
+BEGIN
+    CREATE NONCLUSTERED INDEX [IX_IslemKaydi_Grubu_BelgeNo]
+    ON [dbo].[islemkaydı] ([grubu], [belgenumarası])
+    INCLUDE ([ikid], [id], [belgetarihi], [islemtipi], [TT]);
+END
+GO

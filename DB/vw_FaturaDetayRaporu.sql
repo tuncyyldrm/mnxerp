@@ -69,7 +69,7 @@ SELECT
         END AS DECIMAL(18,4)
     ) AS SatirTutarı
 FROM [dbo].[islem] i
-INNER JOIN [dbo].[islemkaydı] ik ON i.islemnumarası = CAST(ik.ikid AS NVARCHAR(100))
+INNER JOIN [dbo].[islemkaydı] ik ON i.islemnumarası = ik.ikid
 LEFT JOIN [dbo].[kasa] k ON i.kasaid = k.kasaid 
 LEFT JOIN [dbo].[banka] b ON i.bankaid = b.id 
 LEFT JOIN [dbo].[islemkaydı_ack] ack ON ik.ikid = ack.IK_ID AND (ack.SR = 0 OR ack.SR IS NULL)

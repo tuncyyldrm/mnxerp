@@ -1,16 +1,20 @@
 USE [ONEDB]
 GO
 
-/****** Object:  View [dbo].[V_CariAnalizRaporu]    Script Date: 27.06.2026 22:56:44 ******/
 SET ANSI_NULLS ON
 GO
 
 SET QUOTED_IDENTIFIER ON
 GO
 
-
-
-CREATE OR ALTER   VIEW [dbo].[V_CariAnalizRaporu] AS
+CREATE OR ALTER VIEW [dbo].[V_CariAnalizRaporu] AS
+WITH SonHareketler AS (
+    SELECT 
+        ik.id AS CariID,
+        MAX(CAST(ik.belgetarihi AS DATETIME) + CAST(ISNULL(ik.belgesaati, '00:00:00') AS DATETIME)) AS SonTarih
+    FROM [dbo].[islemkaydı] ik WITH (NOLOCK)
+    GROUP BY ik.id
+)
 SELECT 
     c.id,
     c.kodu,
@@ -26,29 +30,13 @@ SELECT
         WHEN c.email LIKE '%trendyol%' OR c.firma LIKE '%Trendyol%' THEN 'Trendyol'
         ELSE 'Doğal Piyasa'
     END AS Kanali,
-    
-    COALESCE(
-        (SELECT MAX(ekstre.IslemTarihi) 
-         FROM [dbo].[vw_CariEkstreDetay] ekstre 
-         WHERE ekstre.CariID = c.id), 
-        c.ilkdate, 
-        GETDATE()
-    ) AS SonIslemTarihi,
-
+    COALESCE(sh.SonTarih, c.ilkdate, GETDATE()) AS SonIslemTarihi,
     CASE 
         WHEN (ISNULL(c.BB_TL, 0) - ISNULL(c.AB_TL, 0)) > 0 THEN
-            DATEDIFF(DAY, 
-                COALESCE(
-                    (SELECT MAX(ekstre.IslemTarihi) FROM [dbo].[vw_CariEkstreDetay] ekstre WHERE ekstre.CariID = c.id), 
-                    c.ilkdate, 
-                    GETDATE()
-                ), 
-                GETDATE()
-            )
+            DATEDIFF(DAY, COALESCE(sh.SonTarih, c.ilkdate, GETDATE()), GETDATE())
         ELSE 0
     END AS GecikmeGunSayisi
-FROM [dbo].[cari] c
+FROM [dbo].[cari] c WITH (NOLOCK)
+LEFT JOIN SonHareketler sh ON c.id = sh.CariID
 WHERE c.C_STATU = 0;
 GO
-
-
