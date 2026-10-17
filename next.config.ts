@@ -9,6 +9,10 @@ const allowedOriginsSet = new Set<string>([
   '127.0.0.1:3000',
   '*.local',
   '*.local:3000',
+  os.hostname(),
+  `${os.hostname()}:3000`,
+  `${os.hostname().toLowerCase()}.local`,
+  `${os.hostname().toLowerCase()}.local:3000`,
 ]);
 
 try {
