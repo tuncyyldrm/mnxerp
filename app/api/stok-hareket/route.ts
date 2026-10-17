@@ -18,7 +18,7 @@ export async function GET(request: Request) {
 
         // Prosedürü çalıştır
         const result = await pool.request()
-            .input('DetayKodu', sql.NVarChar, detayKodu)
+            .input('DetayKodu', detayKodu)
             .execute('sp_UrunHareketAnaliz');
 
         // Sonuçları döndür

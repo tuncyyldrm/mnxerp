@@ -36,14 +36,14 @@ export async function POST(req: NextRequest) {
     
     // Prosedürü güvenli parametrelerle çalıştırıyoruz
     await pool.request()
-      .input('UrunKodu', sql.NVarChar(100), urunKodu)
-      .input('UrunAd', sql.NVarChar(250), urunAd)
-      .input('Raf', sql.NVarChar(50), raf || '')
-      .input('OEM_0', sql.NVarChar(100), oems?.[0] || '')
-      .input('OEM_1', sql.NVarChar(100), oems?.[1] || '')
-      .input('OEM_2', sql.NVarChar(100), oems?.[2] || '')
-      .input('OEM_3', sql.NVarChar(100), oems?.[3] || '')
-      .input('OEM_4', sql.NVarChar(100), oems?.[4] || '')
+      .input('UrunKodu', urunKodu)
+      .input('UrunAd', urunAd)
+      .input('Raf', raf || '')
+      .input('OEM_0', oems?.[0] || '')
+      .input('OEM_1', oems?.[1] || '')
+      .input('OEM_2', oems?.[2] || '')
+      .input('OEM_3', oems?.[3] || '')
+      .input('OEM_4', oems?.[4] || '')
       .execute('sp_StokDuzenle');
 
     return NextResponse.json({ success: true, message: 'Ürün başarıyla güncellendi.' });

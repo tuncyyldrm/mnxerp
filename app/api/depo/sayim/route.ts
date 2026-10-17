@@ -14,8 +14,8 @@ export async function GET(request: Request) {
     const pool = await getDbConnection();
     const req = pool.request();
 
-    req.input('q', sql.NVarChar(100), q);
-    req.input('likeQ', sql.NVarChar(100), `%${q}%`);
+    req.input('q', q);
+    req.input('likeQ', `%${q}%`);
 
     const result = await req.query(`
       SELECT TOP 20
@@ -79,7 +79,7 @@ export async function POST(request: Request) {
 
     // Mevcut ürün bilgilerini al
     const stokRes = await pool.request()
-      .input('urunKodu', sql.NVarChar(100), urunKodu)
+      .input('urunKodu', urunKodu)
       .query(`SELECT TOP 1 urun, OEM_0, OEM_1, OEM_2, OEM_3, OEM_4 FROM [dbo].[stok] WHERE urunkodu = @urunKodu`);
 
     if (stokRes.recordset.length === 0) {
@@ -90,14 +90,14 @@ export async function POST(request: Request) {
 
     // sp_StokDuzenle ile Rafı güncelle
     await pool.request()
-      .input('UrunKodu', sql.NVarChar(100), urunKodu)
-      .input('UrunAd', sql.NVarChar(250), urun.urun)
-      .input('Raf', sql.NVarChar(50), raf || '')
-      .input('OEM_0', sql.NVarChar(100), urun.OEM_0 || '')
-      .input('OEM_1', sql.NVarChar(100), urun.OEM_1 || '')
-      .input('OEM_2', sql.NVarChar(100), urun.OEM_2 || '')
-      .input('OEM_3', sql.NVarChar(100), urun.OEM_3 || '')
-      .input('OEM_4', sql.NVarChar(100), urun.OEM_4 || '')
+      .input('UrunKodu', urunKodu)
+      .input('UrunAd', urun.urun)
+      .input('Raf', raf || '')
+      .input('OEM_0', urun.OEM_0 || '')
+      .input('OEM_1', urun.OEM_1 || '')
+      .input('OEM_2', urun.OEM_2 || '')
+      .input('OEM_3', urun.OEM_3 || '')
+      .input('OEM_4', urun.OEM_4 || '')
       .execute('sp_StokDuzenle');
 
     return NextResponse.json({

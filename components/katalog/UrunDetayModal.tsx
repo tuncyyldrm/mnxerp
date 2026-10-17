@@ -155,28 +155,44 @@ export default function UrunDetayModal({
   const handleUrunKaydet = async () => {
     setIsSaving(true);
     try {
-      // 1. Ürün Metin ve Raf Bilgilerini Kaydet
-      const response = await fetch('/api/urun-duzenle', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          urunKodu: urun.urunkodu,
-          urunAd: editForm.urun,
-          raf: editForm.Raf,
-          oems: editForm.oems
-        })
-      });
+      // 1. Ürün Metin ve Raf Bilgilerini Kaydet (Yalnızca değiştiyse)
+      const textChanged =
+        editForm.urun !== urun.urun ||
+        editForm.urunalt !== (urun.urunalt || '') ||
+        editForm.Raf !== (urun.Raf || '') ||
+        editForm.oems[0] !== (urun.OEM_0 || urun.OEM || '') ||
+        editForm.oems[1] !== (urun.OEM_1 || '') ||
+        editForm.oems[2] !== (urun.OEM_2 || '') ||
+        editForm.oems[3] !== (urun.OEM_3 || '') ||
+        editForm.oems[4] !== (urun.OEM_4 || '');
 
-      const resData = await response.json();
-      if (!response.ok) throw new Error(resData.error || 'Bilgiler güncellenemedi.');
+      if (textChanged) {
+        const response = await fetch('/api/urun-duzenle', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            urunKodu: urun.urunkodu,
+            urunAd: editForm.urun,
+            raf: editForm.Raf,
+            oems: editForm.oems
+          })
+        });
+
+        const resData = await response.json();
+        if (!response.ok) throw new Error(resData.error || 'Bilgiler güncellenemedi.');
+      }
 
       // 2. Bekleyen Görsel Değişikliği Varsa Uygula
       if (pendingImageDelete) {
-        await fetch('/api/gorsel/sil', {
+        const delRes = await fetch('/api/gorsel/sil', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ urunkodu: urun.urunkodu }),
         });
+        const delData = await delRes.json();
+        if (!delRes.ok && delRes.status !== 404) {
+          throw new Error(delData.error || 'Görsel silinemedi.');
+        }
         setHasValidImage(false);
       } else if (pendingImageFile) {
         const formData = new FormData();
@@ -195,7 +211,8 @@ export default function UrunDetayModal({
       }
 
       // 3. Başarıyla tamamlandı, durumları güncelle
-      setImageVersion(Date.now());
+      const newVersion = Date.now();
+      setImageVersion(newVersion);
       if (previewImageUrl) {
         URL.revokeObjectURL(previewImageUrl);
         setPreviewImageUrl(null);
