@@ -25,7 +25,9 @@ import {
   Send,
   CloudCheck,
   Edit3,
-  Check
+  Check,
+  Camera,
+  Loader2
 } from 'lucide-react';
 import { getCleanedCode } from '@/components/katalog/types';
 
@@ -129,6 +131,46 @@ export default function DepoSayimPage() {
   const [submitResult, setSubmitResult] = useState<{ success: boolean; message: string; syId?: number } | null>(null);
 
   const searchInputRef = useRef<HTMLInputElement>(null);
+
+  // Depoda Anlık Görsel Çekme & Yükleme
+  const [imageVersion, setImageVersion] = useState(Date.now());
+  const [isUploadingImage, setIsUploadingImage] = useState(false);
+  const [imageUploadStatus, setImageUploadStatus] = useState<string | null>(null);
+  const cameraInputRef = useRef<HTMLInputElement>(null);
+
+  const handleCameraCapture = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !selectedUrun) return;
+
+    setIsUploadingImage(true);
+    setImageUploadStatus(null);
+
+    const formData = new FormData();
+    formData.append('urunkodu', selectedUrun.urunkodu);
+    formData.append('file', file);
+
+    try {
+      const res = await fetch('/api/gorsel/yukle', {
+        method: 'POST',
+        body: formData,
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        throw new Error(data.error || 'Görsel yüklenemedi.');
+      }
+      setImageVersion(Date.now());
+      setImageUploadStatus('Görsel başarıyla kaydedildi!');
+      playBeep('success', soundEnabled);
+      setTimeout(() => setImageUploadStatus(null), 3000);
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Yükleme başarısız';
+      setImageUploadStatus('Hata: ' + msg);
+      playBeep('alert', soundEnabled);
+    } finally {
+      setIsUploadingImage(false);
+      if (e.target) e.target.value = '';
+    }
+  };
 
   // LocalStorage'a Otomatik Eşitleme (Yalnızca mount gerçekleştikten sonra kaydeder, veriyi sıfırlamaz)
   useEffect(() => {
@@ -538,10 +580,10 @@ export default function DepoSayimPage() {
           {/* Ürün Görseli & Künyesi */}
           <div className="flex flex-col sm:flex-row items-center sm:items-start gap-5 pb-5 border-b border-slate-100">
             {/* Büyük Ürün Görseli */}
-            <div className="relative group shrink-0">
+            <div className="relative group shrink-0 flex flex-col items-center">
               <div 
                 onClick={() => setZoomImg({
-                  src: `/images/urunler/${getCleanedCode(selectedUrun.urunkodu)}.jpg`,
+                  src: `/images/urunler/${getCleanedCode(selectedUrun.urunkodu)}.jpg?v=${imageVersion}`,
                   title: selectedUrun.urun,
                   kod: selectedUrun.urunkodu
                 })}
@@ -549,7 +591,8 @@ export default function DepoSayimPage() {
                 title="Büyük boy görmek için tıklayın"
               >
                 <img
-                  src={`/images/urunler/${getCleanedCode(selectedUrun.urunkodu)}.jpg`}
+                  key={`${selectedUrun.urunkodu}-${imageVersion}`}
+                  src={`/images/urunler/${getCleanedCode(selectedUrun.urunkodu)}.jpg?v=${imageVersion}`}
                   alt={selectedUrun.urun}
                   className="max-w-full max-h-full object-contain transition-transform duration-300 group-hover:scale-105"
                   onError={(e) => {
@@ -568,9 +611,42 @@ export default function DepoSayimPage() {
                   </span>
                 </div>
               </div>
-              <span className="text-[10px] text-slate-400 text-center block mt-1">
-                Görsele tıklayarak büyütebilirsiniz
-              </span>
+
+              {/* Depo Personeli İçin Hızlı Fotoğraf Çekme Butonu */}
+              <div className="mt-2 w-full">
+                <input
+                  ref={cameraInputRef}
+                  type="file"
+                  accept="image/*"
+                  capture="environment"
+                  className="hidden"
+                  onChange={handleCameraCapture}
+                />
+                <button
+                  type="button"
+                  onClick={() => cameraInputRef.current?.click()}
+                  disabled={isUploadingImage}
+                  className="w-full py-1.5 px-2 bg-amber-500 hover:bg-amber-600 disabled:bg-slate-200 text-slate-950 disabled:text-slate-400 font-bold text-[11px] rounded-xl transition-all flex items-center justify-center gap-1.5 shadow-xs"
+                  title="Cihaz kamerası ile yeni görsel çekip sisteme yükle"
+                >
+                  {isUploadingImage ? (
+                    <>
+                      <Loader2 size={13} className="animate-spin" />
+                      <span>İşleniyor...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Camera size={13} />
+                      <span>Fotoğraf Çek</span>
+                    </>
+                  )}
+                </button>
+                {imageUploadStatus && (
+                  <p className="text-[10px] font-bold text-emerald-600 text-center mt-1 animate-in fade-in">
+                    {imageUploadStatus}
+                  </p>
+                )}
+              </div>
             </div>
 
             {/* Ürün Metin Bilgileri */}

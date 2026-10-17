@@ -3,7 +3,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useState } from 'react';
 import { 
-  Users, FileText, Layers, Menu, X, TrendingUp, Wallet, Clock, Boxes 
+  Users, FileText, Layers, Menu, X, TrendingUp, Wallet, Clock, Boxes, Image as ImageIcon 
 } from 'lucide-react';
 
 export default function Sidebar() {
@@ -17,6 +17,7 @@ export default function Sidebar() {
     { name: 'Cari Yönetimi', href: '/raporlar/cari', icon: Users },
     { name: 'Fatura Raporları', href: '/raporlar/fatura', icon: FileText },
     { name: 'Depo & Raf Sayımı', href: '/depo/sayim', icon: Boxes },
+    { name: 'Görsel Yönetimi', href: '/yonetim/gorseller', icon: ImageIcon },
     { name: 'Anasayfa / Katalog', href: '/', icon: Layers },
   ];
 

@@ -1,6 +1,7 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
+import { Camera, Upload, Trash2, Loader2, Check, AlertCircle } from 'lucide-react';
 import { Urun, StokHareketi, KRITIK_STOK_ESIGI, formatPara, getCleanedCode } from './types';
 
 interface UrunDetayModalProps {
@@ -21,6 +22,14 @@ export default function UrunDetayModal({
   const [isZoomed, setIsZoomed] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+
+  // Görsel yönetimi durumları
+  const [imageVersion, setImageVersion] = useState(Date.now());
+  const [isImageProcessing, setIsImageProcessing] = useState(false);
+  const [imageMsg, setImageMsg] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+  const [hasValidImage, setHasValidImage] = useState<boolean>(true);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const cameraInputRef = useRef<HTMLInputElement>(null);
 
   const [editForm, setEditForm] = useState({
     urun: urun?.urun || '',
@@ -48,6 +57,74 @@ export default function UrunDetayModal({
   }, []);
 
   const urunKodu = urun?.urunkodu;
+
+  // Ürün değiştiğinde görsel sürümünü sıfırla
+  useEffect(() => {
+    setImageVersion(Date.now());
+    setHasValidImage(true);
+    setImageMsg(null);
+  }, [urunKodu]);
+
+  // Görsel yükleme işlemi
+  const handleUploadImage = async (file: File) => {
+    if (!urun) return;
+    setIsImageProcessing(true);
+    setImageMsg(null);
+
+    const formData = new FormData();
+    formData.append('urunkodu', urun.urunkodu);
+    formData.append('file', file);
+
+    try {
+      const res = await fetch('/api/gorsel/yukle', {
+        method: 'POST',
+        body: formData,
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        throw new Error(data.error || 'Görsel yüklenemedi.');
+      }
+      setImageVersion(Date.now());
+      setHasValidImage(true);
+      setImageMsg({ type: 'success', text: 'Görsel güncellendi' });
+      setTimeout(() => setImageMsg(null), 3000);
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Yükleme başarısız';
+      setImageMsg({ type: 'error', text: msg });
+    } finally {
+      setIsImageProcessing(false);
+    }
+  };
+
+  // Görsel silme işlemi
+  const handleDeleteImage = async () => {
+    if (!urun) return;
+    if (!confirm(`${urun.urunkodu} kodlu ürünün görselini silmek istediğinize emin misiniz?`)) return;
+
+    setIsImageProcessing(true);
+    setImageMsg(null);
+
+    try {
+      const res = await fetch('/api/gorsel/sil', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ urunkodu: urun.urunkodu }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        throw new Error(data.error || 'Görsel silinemedi.');
+      }
+      setImageVersion(Date.now());
+      setHasValidImage(false);
+      setImageMsg({ type: 'success', text: 'Görsel silindi' });
+      setTimeout(() => setImageMsg(null), 3000);
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Silme başarısız';
+      setImageMsg({ type: 'error', text: msg });
+    } finally {
+      setIsImageProcessing(false);
+    }
+  };
 
   useEffect(() => {
     let ignore = false;
@@ -203,32 +280,122 @@ export default function UrunDetayModal({
           <span className="text-xs font-black">✕</span>
         </button>
 
-        {/* SOL: ÜRÜN GÖRSELİ */}
-        <div className="w-full md:w-[40%] bg-slate-50/50 p-4 md:p-6 flex flex-col items-center justify-center relative border-b md:border-b-0 md:border-r border-slate-100 shrink-0 h-[35vh] md:h-auto">
-          <div className="absolute top-3 left-3 z-20">
-            <span className={`px-2.5 py-1 rounded-md text-[9px] font-bold uppercase tracking-tight ${isStoktaYok ? 'bg-red-100 text-red-600' : 'bg-emerald-100 text-emerald-600'}`}>
+        {/* SOL: ÜRÜN GÖRSELİ & YÖNETİM ALANI */}
+        <div className="w-full md:w-[42%] bg-slate-50/70 p-4 md:p-6 flex flex-col justify-between items-center relative border-b md:border-b-0 md:border-r border-slate-100 shrink-0 min-h-[360px] md:min-h-0">
+          
+          {/* Gizli Dosya ve Kamera Inputları */}
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/png,image/jpeg,image/webp,image/jpg"
+            className="hidden"
+            onChange={(e) => {
+              const file = e.target.files?.[0];
+              if (file) handleUploadImage(file);
+              e.target.value = '';
+            }}
+          />
+          <input
+            ref={cameraInputRef}
+            type="file"
+            accept="image/*"
+            capture="environment"
+            className="hidden"
+            onChange={(e) => {
+              const file = e.target.files?.[0];
+              if (file) handleUploadImage(file);
+              e.target.value = '';
+            }}
+          />
+
+          {/* Üst Rozetler */}
+          <div className="w-full flex items-center justify-between mb-2">
+            <span className={`px-2.5 py-1 rounded-md text-[9px] font-bold uppercase tracking-tight shadow-xs ${isStoktaYok ? 'bg-red-100 text-red-600' : 'bg-emerald-100 text-emerald-600'}`}>
               {isStoktaYok ? '● Stokta Yok' : '● Stokta Mevcut'}
             </span>
+
+            {imageMsg && (
+              <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full flex items-center gap-1 animate-in fade-in slide-in-from-top-1 ${
+                imageMsg.type === 'success' ? 'bg-emerald-100 text-emerald-700' : 'bg-red-100 text-red-700'
+              }`}>
+                {imageMsg.type === 'success' ? <Check size={11} /> : <AlertCircle size={11} />}
+                {imageMsg.text}
+              </span>
+            )}
           </div>
 
+          {/* Görsel Kutusu */}
           <div 
-            className="w-full h-full flex items-center justify-center relative group cursor-zoom-in" 
-            onClick={() => { if (!isSaving) setIsZoomed(true); }}
+            className="w-full flex-1 flex items-center justify-center relative group cursor-zoom-in min-h-[220px] max-h-[300px] bg-white rounded-xl border border-slate-200/80 p-2 shadow-xs overflow-hidden" 
+            onClick={() => { if (!isSaving && !isImageProcessing) setIsZoomed(true); }}
           >
+            {isImageProcessing && (
+              <div className="absolute inset-0 bg-white/80 backdrop-blur-xs z-30 flex flex-col items-center justify-center gap-2">
+                <Loader2 size={32} className="animate-spin text-blue-600" />
+                <span className="text-xs font-bold text-slate-700">Görsel İşleniyor...</span>
+              </div>
+            )}
+
             <img
-              src={`/images/urunler/${getCleanedCode(urun.urunkodu)}.jpg`}
-              className="w-full h-full object-contain p-2 transition-transform hover:scale-[1.02]"
+              key={`${urun.urunkodu}-${imageVersion}`}
+              src={`/images/urunler/${getCleanedCode(urun.urunkodu)}.jpg?v=${imageVersion}`}
+              className="w-full h-full object-contain p-2 transition-transform hover:scale-[1.03]"
               alt={urun.urun}
+              onLoad={() => setHasValidImage(true)}
               onError={(e) => {
+                setHasValidImage(false);
                 const target = e.currentTarget;
                 if (target.src !== 'https://placehold.co/400x400?text=Resim+Yok') {
                   target.src = 'https://placehold.co/400x400?text=Resim+Yok';
                 }
               }}
             />
-            <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity hidden md:flex bg-black/5 rounded-lg">
-              <span className="bg-black/60 text-white px-3 py-1.5 rounded-lg text-xs font-medium backdrop-blur-xs">Büyütmek için tıkla</span>
+
+            <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity hidden md:flex bg-black/10 rounded-xl pointer-events-none">
+              <span className="bg-slate-900/80 text-white px-3 py-1.5 rounded-lg text-xs font-semibold backdrop-blur-xs shadow-md">
+                🔍 Büyütmek için tıkla
+              </span>
             </div>
+          </div>
+
+          {/* Hızlı Görsel Aksiyon Araç Çubuğu */}
+          <div className="w-full mt-3 pt-3 border-t border-slate-200/60 flex items-center justify-between gap-1.5">
+            <div className="flex items-center gap-1.5 flex-1">
+              <button
+                type="button"
+                onClick={() => cameraInputRef.current?.click()}
+                disabled={isImageProcessing}
+                className="flex-1 py-1.5 px-2 bg-blue-600 hover:bg-blue-700 disabled:bg-slate-200 text-white disabled:text-slate-400 font-bold text-[11px] rounded-lg transition-all flex items-center justify-center gap-1.5 shadow-xs"
+                title="Cihaz kamerası ile yeni fotoğraf çek"
+              >
+                <Camera size={13} />
+                <span>Fotoğraf Çek</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                disabled={isImageProcessing}
+                className="flex-1 py-1.5 px-2 bg-slate-100 hover:bg-slate-200 disabled:bg-slate-50 text-slate-700 disabled:text-slate-400 font-bold text-[11px] rounded-lg transition-all flex items-center justify-center gap-1.5 border border-slate-200"
+                title="Bilgisayardan dosya seçip yükle"
+              >
+                <Upload size={13} />
+                <span>Yükle</span>
+              </button>
+            </div>
+
+            {hasValidImage && (
+              <button
+                type="button"
+                onClick={handleDeleteImage}
+                disabled={isImageProcessing}
+                className="py-1.5 px-2.5 bg-red-50 hover:bg-red-100 disabled:opacity-50 text-red-600 font-bold text-[11px] rounded-lg transition-colors border border-red-200 flex items-center justify-center gap-1"
+                title="Mevcut görseli sil"
+              >
+                <Trash2 size={13} />
+                <span className="hidden sm:inline">Sil</span>
+              </button>
+            )}
           </div>
 
           {/* BÜYÜTÜLMÜŞ GÖRSEL (ZOOM MODAL) */}
@@ -247,7 +414,7 @@ export default function UrunDetayModal({
               </button>
               <div className="w-full h-full flex items-center justify-center max-w-6xl max-h-[85vh] md:max-h-[90vh]">
                 <img
-                  src={`/images/urunler/${getCleanedCode(urun.urunkodu)}.jpg`}
+                  src={`/images/urunler/${getCleanedCode(urun.urunkodu)}.jpg?v=${imageVersion}`}
                   className="w-full h-full object-contain animate-in zoom-in-95 duration-200 select-none"
                   alt={urun.urun}
                   onError={(e) => {
