@@ -453,7 +453,7 @@ export default function GorselYonetimPage() {
                       <img
                         src={imgPath}
                         alt={urun.urun}
-                        className="w-full h-full object-contain transition-transform group-hover:scale-105"
+                        className="max-w-full max-h-full w-auto h-auto object-contain transition-transform group-hover:scale-105"
                         onError={(e) => {
                           const target = e.currentTarget;
                           if (target.src !== 'https://placehold.co/200x200?text=Yok') {

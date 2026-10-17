@@ -363,7 +363,7 @@ export default function UrunDetayModal({
 
           {/* Görsel Kutusu */}
           <div 
-            className={`w-full flex-1 flex items-center justify-center relative group h-[170px] sm:h-[220px] md:h-auto md:min-h-[260px] md:max-h-[320px] bg-white rounded-xl border p-2 shadow-xs overflow-hidden transition-all ${
+            className={`w-full h-[180px] sm:h-[220px] md:h-[300px] max-h-[180px] sm:max-h-[220px] md:max-h-[300px] flex items-center justify-center relative group bg-white rounded-xl border p-2 shadow-xs overflow-hidden transition-all shrink-0 ${
               isEditing ? 'border-blue-400 ring-2 ring-blue-500/10' : 'border-slate-200/80 cursor-zoom-in'
             }`} 
             onClick={() => { if (!isSaving && !isEditing) setIsZoomed(true); }}
@@ -378,7 +378,7 @@ export default function UrunDetayModal({
             <img
               key={`${urun.urunkodu}-${imageVersion}-${previewImageUrl || 'orig'}`}
               src={previewImageUrl || `/images/urunler/${getCleanedCode(urun.urunkodu)}.jpg?v=${imageVersion}`}
-              className="w-full h-full object-contain p-2 transition-transform hover:scale-[1.03]"
+              className="max-w-full max-h-full w-auto h-auto object-contain p-1.5 transition-transform hover:scale-[1.03] select-none"
               alt={urun.urun}
               onLoad={() => { if (!pendingImageDelete) setHasValidImage(true); }}
               onError={(e) => {
@@ -477,7 +477,7 @@ export default function UrunDetayModal({
               <div className="w-full h-full flex items-center justify-center max-w-6xl max-h-[85vh] md:max-h-[90vh]">
                 <img
                   src={`/images/urunler/${getCleanedCode(urun.urunkodu)}.jpg?v=${imageVersion}`}
-                  className="w-full h-full object-contain animate-in zoom-in-95 duration-200 select-none"
+                  className="max-w-full max-h-full w-auto h-auto object-contain animate-in zoom-in-95 duration-200 select-none"
                   alt={urun.urun}
                   onError={(e) => {
                     const target = e.currentTarget;
