@@ -307,9 +307,9 @@ export default function GorselYonetimPage() {
       {/* SADE VE FERAH ÜST BAŞLIK */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-200">
         <div>
-          <h1 className="text-xl font-bold text-slate-900 tracking-tight flex items-center gap-2">
+          <h1 className="text-lg sm:text-xl font-bold text-slate-900 tracking-tight flex items-center gap-2">
             <span>Görsel Yönetimi</span>
-            <span className="text-xs font-normal text-slate-500 bg-slate-100 px-2 py-0.5 rounded-full">
+            <span className="text-[10px] sm:text-xs font-semibold text-slate-600 bg-slate-100 px-2 py-0.5 rounded-full">
               %{istatistik.dolulukOrani} Doluluk
             </span>
           </h1>
@@ -318,10 +318,10 @@ export default function GorselYonetimPage() {
           </p>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 w-full sm:w-auto">
           <button
             onClick={() => setShowBulkModal(true)}
-            className="px-3.5 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl transition-all flex items-center gap-1.5 shadow-xs"
+            className="flex-1 sm:flex-none justify-center px-4 py-2.5 sm:py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl transition-all flex items-center gap-1.5 shadow-xs active:scale-[0.98]"
           >
             <UploadCloud size={15} />
             <span>Toplu Yükle</span>
@@ -330,7 +330,7 @@ export default function GorselYonetimPage() {
           <button
             onClick={fetchUrunler}
             disabled={loading}
-            className="p-2 bg-white hover:bg-slate-50 border border-slate-200 text-slate-600 rounded-xl transition-colors shadow-xs"
+            className="p-2.5 sm:p-2 bg-white hover:bg-slate-50 border border-slate-200 text-slate-600 rounded-xl transition-colors shadow-xs active:scale-95"
             title="Listeyi Yenile"
           >
             <RefreshCw size={15} className={loading ? 'animate-spin' : ''} />
@@ -339,13 +339,13 @@ export default function GorselYonetimPage() {
       </div>
 
       {/* KULLANIMI KOLAY FİLTRE VE ARAMA ÇUBUĞU */}
-      <div className="flex flex-col md:flex-row items-center justify-between gap-3 bg-white p-2.5 rounded-xl border border-slate-200 shadow-xs">
+      <div className="flex flex-col md:flex-row items-center justify-between gap-2.5 bg-white p-2.5 rounded-xl border border-slate-200 shadow-xs">
         
-        {/* Filtre Sekmeleri */}
-        <div className="flex items-center p-1 bg-slate-100 rounded-lg w-full md:w-auto text-xs font-semibold">
+        {/* Filtre Sekmeleri (Mobilde 3 Eşit Sütun Olarak Kusursuz Sığar) */}
+        <div className="grid grid-cols-3 p-1 bg-slate-100 rounded-lg w-full md:w-auto text-[11px] sm:text-xs font-semibold gap-1">
           <button
             onClick={() => { setDurumFiltre('all'); setSayfa(1); }}
-            className={`px-3 py-1.5 rounded-md transition-all ${
+            className={`py-1.5 sm:py-1.5 px-1 sm:px-3 rounded-md transition-all text-center truncate ${
               durumFiltre === 'all' ? 'bg-white text-slate-900 shadow-xs font-bold' : 'text-slate-600 hover:text-slate-900'
             }`}
           >
@@ -354,27 +354,27 @@ export default function GorselYonetimPage() {
 
           <button
             onClick={() => { setDurumFiltre('gorselsiz'); setSayfa(1); }}
-            className={`px-3 py-1.5 rounded-md transition-all flex items-center gap-1.5 ${
+            className={`py-1.5 sm:py-1.5 px-1 sm:px-3 rounded-md transition-all flex items-center justify-center gap-1 truncate ${
               durumFiltre === 'gorselsiz' 
                 ? 'bg-amber-500 text-slate-950 shadow-xs font-bold' 
-                : 'text-amber-700 hover:bg-amber-100/50'
+                : 'text-amber-800 hover:bg-amber-100/50'
             }`}
           >
-            <span>❌ Görselsiz</span>
-            <span className="text-[10px] bg-amber-600/20 px-1 py-0.2 rounded font-mono">
+            <span>❌ Eksik</span>
+            <span className="text-[10px] bg-amber-600/20 px-1 rounded font-mono">
               {istatistik.gorselsizSayisi.toLocaleString('tr-TR')}
             </span>
           </button>
 
           <button
             onClick={() => { setDurumFiltre('gorselli'); setSayfa(1); }}
-            className={`px-3 py-1.5 rounded-md transition-all flex items-center gap-1.5 ${
+            className={`py-1.5 sm:py-1.5 px-1 sm:px-3 rounded-md transition-all flex items-center justify-center gap-1 truncate ${
               durumFiltre === 'gorselli' 
                 ? 'bg-emerald-600 text-white shadow-xs font-bold' 
                 : 'text-slate-600 hover:text-slate-900'
             }`}
           >
-            <span>✓ Görselli</span>
+            <span>✓ Var</span>
             <span className="text-[10px] opacity-80 font-mono">
               ({istatistik.gorselliSayisi.toLocaleString('tr-TR')})
             </span>
@@ -390,13 +390,13 @@ export default function GorselYonetimPage() {
               value={searchInput}
               onChange={(e) => setSearchInput(e.target.value)}
               placeholder="Ürün Kodu, OEM veya Ad..."
-              className="w-full pl-8 pr-7 py-1.5 bg-slate-50 border border-slate-200 focus:border-blue-500 focus:bg-white rounded-lg text-xs font-medium outline-none transition-all"
+              className="w-full pl-8 pr-7 py-2 sm:py-1.5 bg-slate-50 border border-slate-200 focus:border-blue-500 focus:bg-white rounded-lg text-xs font-medium outline-none transition-all"
             />
             {searchInput && (
               <button
                 type="button"
                 onClick={() => { setSearchInput(''); setSearch(''); setSayfa(1); }}
-                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 text-xs"
+                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 text-xs p-1"
               >
                 ✕
               </button>
@@ -404,7 +404,7 @@ export default function GorselYonetimPage() {
           </div>
           <button
             type="submit"
-            className="px-3 py-1.5 bg-slate-800 hover:bg-slate-900 text-white font-bold text-xs rounded-lg transition-colors"
+            className="px-3.5 py-2 sm:py-1.5 bg-slate-800 hover:bg-slate-900 text-white font-bold text-xs rounded-lg transition-colors shrink-0"
           >
             Ara
           </button>
@@ -424,7 +424,7 @@ export default function GorselYonetimPage() {
           <p className="text-xs text-slate-400">Seçili filtrelere uygun ürün kaydı mevcut değil.</p>
         </div>
       ) : (
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3">
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-2.5 sm:gap-3">
           {urunler.map((urun) => {
             const isProcessingThis = processingKod === urun.urunkodu;
             const imgPath = `/images/urunler/${getCleanedCode(urun.urunkodu)}.jpg?v=${globalImageVersion}`;
@@ -436,7 +436,7 @@ export default function GorselYonetimPage() {
               >
                 {/* Görsel Alanı */}
                 <div 
-                  className="w-full h-32 sm:h-36 bg-slate-50/60 relative flex items-center justify-center p-2 border-b border-slate-100 cursor-pointer"
+                  className="w-full h-28 sm:h-36 bg-slate-50/60 relative flex items-center justify-center p-1.5 sm:p-2 border-b border-slate-100 cursor-pointer"
                   onClick={() => {
                     if (urun.gorselVar) {
                       setZoomGorsel({ src: imgPath, kod: urun.urunkodu, title: urun.urun });
@@ -500,8 +500,8 @@ export default function GorselYonetimPage() {
                   </div>
                 </div>
 
-                {/* Hızlı Aksiyon Barı (Sade Butonlar) */}
-                <div className="p-1.5 bg-slate-50 border-t border-slate-100 flex items-center justify-center gap-1">
+                {/* Hızlı Aksiyon Barı (Mobilde Kolay Dokunmatik Butonlar) */}
+                <div className="p-1 sm:p-1.5 bg-slate-50 border-t border-slate-100 flex items-center justify-center gap-1">
                   <button
                     type="button"
                     onClick={() => {
@@ -509,10 +509,10 @@ export default function GorselYonetimPage() {
                       singleCameraInputRef.current?.click();
                     }}
                     disabled={isProcessingThis}
-                    className="p-1.5 bg-white hover:bg-slate-100 text-slate-600 rounded-md border border-slate-200 transition-colors"
+                    className="flex-1 h-8 sm:h-7 bg-white hover:bg-slate-100 active:bg-slate-200 text-slate-700 rounded-lg border border-slate-200 transition-colors flex items-center justify-center shadow-2xs"
                     title="Kamera ile çek"
                   >
-                    <Camera size={13} />
+                    <Camera size={14} />
                   </button>
 
                   <button
@@ -522,10 +522,10 @@ export default function GorselYonetimPage() {
                       singleFileInputRef.current?.click();
                     }}
                     disabled={isProcessingThis}
-                    className="p-1.5 bg-white hover:bg-slate-100 text-slate-600 rounded-md border border-slate-200 transition-colors"
+                    className="flex-1 h-8 sm:h-7 bg-white hover:bg-slate-100 active:bg-slate-200 text-slate-700 rounded-lg border border-slate-200 transition-colors flex items-center justify-center shadow-2xs"
                     title="Dosya seçip yükle"
                   >
-                    <UploadCloud size={13} />
+                    <UploadCloud size={14} />
                   </button>
 
                   {urun.gorselVar && (
@@ -533,10 +533,10 @@ export default function GorselYonetimPage() {
                       type="button"
                       onClick={() => handleSingleDelete(urun.urunkodu)}
                       disabled={isProcessingThis}
-                      className="p-1.5 bg-white hover:bg-red-50 text-red-500 rounded-md border border-slate-200 transition-colors"
+                      className="h-8 sm:h-7 px-2.5 bg-white hover:bg-red-50 active:bg-red-100 text-red-500 rounded-lg border border-slate-200 transition-colors flex items-center justify-center shadow-2xs"
                       title="Görseli sil"
                     >
-                      <Trash2 size={13} />
+                      <Trash2 size={14} />
                     </button>
                   )}
                 </div>
@@ -549,8 +549,8 @@ export default function GorselYonetimPage() {
 
       {/* SAYFALAMA */}
       {toplamSayfa > 1 && (
-        <div className="flex items-center justify-between pt-3 border-t border-slate-200 text-xs">
-          <span className="text-slate-500">
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-2.5 pt-3 border-t border-slate-200 text-xs">
+          <span className="text-slate-500 text-center sm:text-left">
             Toplam <strong>{toplamKayit.toLocaleString('tr-TR')}</strong> üründen {(sayfa - 1) * limit + 1} - {Math.min(sayfa * limit, toplamKayit)} arası
           </span>
 
@@ -558,19 +558,19 @@ export default function GorselYonetimPage() {
             <button
               onClick={() => setSayfa(p => Math.max(1, p - 1))}
               disabled={sayfa === 1 || loading}
-              className="p-1.5 bg-white border border-slate-200 disabled:opacity-40 rounded-lg hover:bg-slate-50 text-slate-700"
+              className="p-2 sm:p-1.5 bg-white border border-slate-200 disabled:opacity-40 rounded-lg hover:bg-slate-50 text-slate-700 active:scale-95 transition-all"
             >
-              <ChevronLeft size={14} />
+              <ChevronLeft size={16} />
             </button>
-            <span className="font-bold text-slate-700 px-2">
+            <span className="font-bold text-slate-700 px-3 py-1 bg-white rounded-lg border border-slate-200 text-xs">
               {sayfa} / {toplamSayfa}
             </span>
             <button
               onClick={() => setSayfa(p => Math.min(toplamSayfa, p + 1))}
               disabled={sayfa === toplamSayfa || loading}
-              className="p-1.5 bg-white border border-slate-200 disabled:opacity-40 rounded-lg hover:bg-slate-50 text-slate-700"
+              className="p-2 sm:p-1.5 bg-white border border-slate-200 disabled:opacity-40 rounded-lg hover:bg-slate-50 text-slate-700 active:scale-95 transition-all"
             >
-              <ChevronRight size={14} />
+              <ChevronRight size={16} />
             </button>
           </div>
         </div>

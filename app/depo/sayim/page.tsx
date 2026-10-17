@@ -626,7 +626,7 @@ export default function DepoSayimPage() {
                   type="button"
                   onClick={() => cameraInputRef.current?.click()}
                   disabled={isUploadingImage}
-                  className="w-full py-1.5 px-2 bg-amber-500 hover:bg-amber-600 disabled:bg-slate-200 text-slate-950 disabled:text-slate-400 font-bold text-[11px] rounded-xl transition-all flex items-center justify-center gap-1.5 shadow-xs"
+                  className="w-full py-2.5 px-3 bg-amber-500 hover:bg-amber-600 active:scale-95 disabled:bg-slate-200 text-slate-950 disabled:text-slate-400 font-bold text-xs rounded-xl transition-all flex items-center justify-center gap-1.5 shadow-xs"
                   title="Cihaz kamerası ile yeni görsel çekip sisteme yükle"
                 >
                   {isUploadingImage ? (

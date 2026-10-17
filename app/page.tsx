@@ -210,13 +210,13 @@ export default function Katalog() {
           </div>
 
           {/* Sağ Kısım: Kontroller ve Raporlar Linki */}
-          <div className="flex items-center gap-2.5">
+          <div className="flex items-center gap-1.5 sm:gap-2.5">
 
             {/* Görünüm Modu Seçici (Kare/Liste) */}
             <div className="flex bg-slate-100 p-0.5 rounded-lg border border-slate-200/60">
               <button
                 onClick={() => setGorunumModu('grid')}
-                className={`px-3 md:px-4 py-1 md:py-1.5 rounded-md text-[10px] md:text-xs font-bold transition-all ${
+                className={`px-2.5 sm:px-4 py-1 md:py-1.5 rounded-md text-[10px] md:text-xs font-bold transition-all ${
                   gorunumModu === 'grid'
                     ? 'bg-white shadow-xs text-blue-600'
                     : 'text-slate-400 hover:text-slate-600'
@@ -226,7 +226,7 @@ export default function Katalog() {
               </button>
               <button
                 onClick={() => setGorunumModu('list')}
-                className={`px-3 md:px-4 py-1 md:py-1.5 rounded-md text-[10px] md:text-xs font-bold transition-all ${
+                className={`px-2.5 sm:px-4 py-1 md:py-1.5 rounded-md text-[10px] md:text-xs font-bold transition-all ${
                   gorunumModu === 'list'
                     ? 'bg-white shadow-xs text-blue-600'
                     : 'text-slate-400 hover:text-slate-600'
@@ -239,10 +239,11 @@ export default function Katalog() {
             {/* Yönetim Paneli Linki */}
             <Link
               href="/raporlar/kar-analiz"
-              className="flex items-center gap-1.5 h-8 md:h-9 px-3.5 md:px-4 bg-slate-900 hover:bg-slate-800 text-white rounded-lg text-[10px] md:text-xs font-bold transition-all group shrink-0 shadow-xs"
+              className="flex items-center gap-1.5 h-8 md:h-9 px-2.5 sm:px-4 bg-slate-900 hover:bg-slate-800 text-white rounded-lg text-[10px] md:text-xs font-bold transition-all group shrink-0 shadow-xs"
             >
               <LayoutDashboard size={14} className="transition-transform group-hover:scale-105" />
-              <span>YÖNETİM PANELİ</span>
+              <span className="hidden sm:inline">YÖNETİM PANELİ</span>
+              <span className="sm:hidden">PANEL</span>
             </Link>
 
           </div>

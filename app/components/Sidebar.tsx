@@ -50,18 +50,27 @@ export default function Sidebar() {
         fixed top-0 bottom-0 left-0 z-50 w-64 bg-white border-r border-slate-200 flex flex-col transition-transform duration-200
         print:hidden
         md:translate-x-0 
-        ${isOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}
-        ${'pt-16 md:pt-0'} /* Mobil üst bar payı */
+        ${isOpen ? 'translate-x-0 shadow-2xl' : '-translate-x-full md:translate-x-0'}
       `}>
-        {/* LOGO ALANI */}
-        <div className="hidden md:flex items-center gap-3 p-6 border-b border-slate-100 bg-slate-50/50">
-          <div className="w-9 h-9 bg-indigo-600 rounded-xl flex items-center justify-center text-white font-black text-base shadow-sm shadow-indigo-500/20">
-            E
+        {/* LOGO & BAŞLIK ALANI (Masaüstü ve Mobil) */}
+        <div className="flex items-center justify-between p-4 md:p-6 border-b border-slate-100 bg-slate-50/50">
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 md:w-9 md:h-9 bg-indigo-600 rounded-xl flex items-center justify-center text-white font-black text-sm md:text-base shadow-sm shadow-indigo-500/20">
+              E
+            </div>
+            <div>
+              <h2 className="font-black text-slate-800 text-sm leading-tight tracking-wide">Ezm Oto</h2>
+              <p className="text-[10px] text-indigo-600 font-bold uppercase tracking-wider mt-0.5">Yönetim Paneli</p>
+            </div>
           </div>
-          <div>
-            <h2 className="font-black text-slate-800 text-sm leading-tight tracking-wide">Ezm Oto</h2>
-            <p className="text-[10px] text-indigo-600 font-bold uppercase tracking-wider mt-0.5">Yönetim Paneli</p>
-          </div>
+
+          {/* Mobilde Çekmece Kapatma Butonu */}
+          <button
+            onClick={() => setIsOpen(false)}
+            className="md:hidden p-1.5 text-slate-400 hover:text-slate-700 hover:bg-slate-200/60 rounded-lg transition-colors"
+          >
+            <X size={20} />
+          </button>
         </div>
 
         {/* MENÜ LINKLERI */}
