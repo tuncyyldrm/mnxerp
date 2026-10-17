@@ -111,11 +111,11 @@ export default function GorselYonetimPage() {
       const data = await res.json();
 
       if (data.success) {
-        setUrunler(data.urunler);
-        setToplamKayit(data.toplamKayit);
-        setToplamSayfa(data.toplamSayfa);
-        if (data.istatistik) {
-          setIstatistik(data.istatistik);
+        setUrunler(data.urunler || []);
+        setToplamKayit(data.pagination?.totalFiltered ?? data.toplamKayit ?? 0);
+        setToplamSayfa(data.pagination?.totalPages ?? data.toplamSayfa ?? 1);
+        if (data.stats || data.istatistik) {
+          setIstatistik(data.stats || data.istatistik);
         }
       } else {
         showToast('error', data.error || 'Veri alınamadı.');
