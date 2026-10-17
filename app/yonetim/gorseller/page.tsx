@@ -7,22 +7,20 @@ import {
   Camera, 
   Trash2, 
   Search, 
-  Filter, 
-  CheckCircle2, 
-  AlertTriangle, 
   RefreshCw, 
   ChevronLeft, 
   ChevronRight, 
   Maximize2, 
   Loader2, 
-  Sparkles, 
-  FolderUp, 
+  Plus, 
   Check, 
   X,
   FileImage,
-  AlertCircle
+  AlertCircle,
+  CheckCircle2,
+  AlertTriangle
 } from 'lucide-react';
-import { getCleanedCode, formatPara } from '@/components/katalog/types';
+import { getCleanedCode } from '@/components/katalog/types';
 
 interface UrunGorselItem {
   oto: number;
@@ -48,7 +46,7 @@ interface IstatistikData {
 }
 
 export default function GorselYonetimPage() {
-  // Veri ve Listeleme Durumları
+  // Liste ve Sayfalama
   const [urunler, setUrunler] = useState<UrunGorselItem[]>([]);
   const [istatistik, setIstatistik] = useState<IstatistikData>({
     toplamUrun: 0,
@@ -66,13 +64,11 @@ export default function GorselYonetimPage() {
   const [search, setSearch] = useState('');
   const [searchInput, setSearchInput] = useState('');
   const [durumFiltre, setDurumFiltre] = useState<'all' | 'gorselli' | 'gorselsiz'>('all');
-  const [grubuFiltre, setGrubuFiltre] = useState('');
 
-  // Toplu Yükleme Durumları (Drag & Drop)
-  const [isDragging, setIsDragging] = useState(false);
+  // Toplu Yükleme Modalı
+  const [showBulkModal, setShowBulkModal] = useState(false);
   const [isBulkUploading, setIsBulkUploading] = useState(false);
   const [bulkUploadProgress, setBulkUploadProgress] = useState<{ total: number; done: number; success: number; fail: number } | null>(null);
-  const [bulkLog, setBulkLog] = useState<Array<{ name: string; status: 'ok' | 'error'; msg?: string }>>([]);
 
   // Tekil Görsel İşlemleri
   const [processingKod, setProcessingKod] = useState<string | null>(null);
@@ -89,10 +85,9 @@ export default function GorselYonetimPage() {
   const singleFileInputRef = useRef<HTMLInputElement>(null);
   const singleCameraInputRef = useRef<HTMLInputElement>(null);
 
-  // Bildirim gösterme yardımcısı
   const showToast = (type: 'success' | 'error', text: string) => {
     setToastMsg({ type, text });
-    setTimeout(() => setToastMsg(null), 3500);
+    setTimeout(() => setToastMsg(null), 3000);
   };
 
   // Veri Çekme
@@ -105,7 +100,6 @@ export default function GorselYonetimPage() {
         durum: durumFiltre,
       });
       if (search) params.append('search', search);
-      if (grubuFiltre) params.append('grubu', grubuFiltre);
 
       const res = await fetch(`/api/gorsel/liste?${params.toString()}`);
       const data = await res.json();
@@ -118,42 +112,39 @@ export default function GorselYonetimPage() {
           setIstatistik(data.stats || data.istatistik);
         }
       } else {
-        showToast('error', data.error || 'Veri alınamadı.');
+        showToast('error', data.error || 'Veriler alınamadı.');
       }
-    } catch (err: unknown) {
+    } catch {
       showToast('error', 'Sunucu ile iletişim hatası.');
     } finally {
       setLoading(false);
     }
-  }, [sayfa, limit, durumFiltre, search, grubuFiltre]);
+  }, [sayfa, limit, durumFiltre, search]);
 
   useEffect(() => {
     fetchUrunler();
   }, [fetchUrunler]);
 
-  // Arama formu submit
   const handleSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setSayfa(1);
     setSearch(searchInput.trim());
   };
 
-  // Toplu Dosya Yükleme Fonksiyonu
+  // Toplu Dosya Yükleme
   const handleBulkUploadFiles = async (files: FileList | File[]) => {
     const fileArray = Array.from(files).filter(f => f.type.startsWith('image/'));
     if (fileArray.length === 0) {
-      showToast('error', 'Lütfen geçerli resim dosyaları (JPG, PNG, WEBP) seçin.');
+      showToast('error', 'Lütfen resim dosyaları (JPG, PNG, WEBP) seçin.');
       return;
     }
 
     setIsBulkUploading(true);
     setBulkUploadProgress({ total: fileArray.length, done: 0, success: 0, fail: 0 });
-    setBulkLog([]);
 
-    const batchSize = 10; // 10'arlı paketler halinde sunucuyu zorlamadan yükle
+    const batchSize = 10;
     let successCount = 0;
     let failCount = 0;
-    const newLogs: Array<{ name: string; status: 'ok' | 'error'; msg?: string }> = [];
 
     for (let i = 0; i < fileArray.length; i += batchSize) {
       const currentBatch = fileArray.slice(i, i + batchSize);
@@ -169,21 +160,14 @@ export default function GorselYonetimPage() {
 
         if (data.success && Array.isArray(data.sonuclar)) {
           data.sonuclar.forEach((s: any) => {
-            if (s.durum === 'basarili') {
-              successCount++;
-              newLogs.unshift({ name: s.dosyaAdi, status: 'ok' });
-            } else {
-              failCount++;
-              newLogs.unshift({ name: s.dosyaAdi, status: 'error', msg: s.mesaj });
-            }
+            if (s.durum === 'basarili') successCount++;
+            else failCount++;
           });
         } else {
           failCount += currentBatch.length;
-          currentBatch.forEach(f => newLogs.unshift({ name: f.name, status: 'error', msg: data.error || 'Hata' }));
         }
-      } catch (err: unknown) {
+      } catch {
         failCount += currentBatch.length;
-        currentBatch.forEach(f => newLogs.unshift({ name: f.name, status: 'error', msg: 'Bağlantı koptu' }));
       }
 
       setBulkUploadProgress({
@@ -192,16 +176,15 @@ export default function GorselYonetimPage() {
         success: successCount,
         fail: failCount
       });
-      setBulkLog([...newLogs]);
     }
 
     setIsBulkUploading(false);
     setGlobalImageVersion(Date.now());
-    showToast('success', `${successCount} görsel sisteme başarıyla işlendi!`);
+    showToast('success', `${successCount} görsel sisteme yüklendi!`);
     fetchUrunler();
   };
 
-  // Tekil Görsel Yükleme (Dosya veya Kamera)
+  // Tekil Dosya Yükleme
   const handleSingleUpload = async (file: File, urunKodu: string) => {
     setProcessingKod(urunKodu);
     const formData = new FormData();
@@ -216,9 +199,8 @@ export default function GorselYonetimPage() {
       const data = await res.json();
 
       if (data.success) {
-        showToast('success', `${urunKodu} görseli başarıyla yüklendi.`);
+        showToast('success', `${urunKodu} görseli güncellendi.`);
         setGlobalImageVersion(Date.now());
-        // Listeyi anlık güncelle
         setUrunler(prev => prev.map(u => {
           if (u.urunkodu === urunKodu) {
             return {
@@ -233,7 +215,7 @@ export default function GorselYonetimPage() {
         showToast('error', data.error || 'Yükleme başarısız.');
       }
     } catch {
-      showToast('error', 'Görsel yüklenirken bağlantı hatası oluştu.');
+      showToast('error', 'Görsel yüklenemedi.');
     } finally {
       setProcessingKod(null);
     }
@@ -241,7 +223,7 @@ export default function GorselYonetimPage() {
 
   // Tekil Görsel Silme
   const handleSingleDelete = async (urunKodu: string) => {
-    if (!confirm(`${urunKodu} kodlu ürünün görselini silmek istediğinize emin misiniz?`)) return;
+    if (!confirm(`${urunKodu} ürününün görselini silmek istediğinize emin misiniz?`)) return;
 
     setProcessingKod(urunKodu);
     try {
@@ -262,36 +244,17 @@ export default function GorselYonetimPage() {
           return u;
         }));
       } else {
-        showToast('error', data.error || 'Silme başarısız.');
+        showToast('error', data.error || 'Silinemedi.');
       }
     } catch {
-      showToast('error', 'Görsel silinirken hata oluştu.');
+      showToast('error', 'Silme sırasında hata oluştu.');
     } finally {
       setProcessingKod(null);
     }
   };
 
-  // Drag & Drop Olayları
-  const handleDragOver = (e: React.DragEvent) => {
-    e.preventDefault();
-    setIsDragging(true);
-  };
-
-  const handleDragLeave = (e: React.DragEvent) => {
-    e.preventDefault();
-    setIsDragging(false);
-  };
-
-  const handleDrop = (e: React.DragEvent) => {
-    e.preventDefault();
-    setIsDragging(false);
-    if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
-      handleBulkUploadFiles(e.dataTransfer.files);
-    }
-  };
-
   return (
-    <div className="p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto space-y-6 animate-in fade-in duration-200">
+    <div className="p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto space-y-5 animate-in fade-in duration-150">
       
       {/* Gizli Tekli Inputlar */}
       <input
@@ -301,9 +264,7 @@ export default function GorselYonetimPage() {
         className="hidden"
         onChange={(e) => {
           const file = e.target.files?.[0];
-          if (file && activeUploadKod) {
-            handleSingleUpload(file, activeUploadKod);
-          }
+          if (file && activeUploadKod) handleSingleUpload(file, activeUploadKod);
           e.target.value = '';
         }}
       />
@@ -315,9 +276,7 @@ export default function GorselYonetimPage() {
         className="hidden"
         onChange={(e) => {
           const file = e.target.files?.[0];
-          if (file && activeCameraKod) {
-            handleSingleUpload(file, activeCameraKod);
-          }
+          if (file && activeCameraKod) handleSingleUpload(file, activeCameraKod);
           e.target.value = '';
         }}
       />
@@ -337,254 +296,135 @@ export default function GorselYonetimPage() {
 
       {/* Toast Bildirim */}
       {toastMsg && (
-        <div className={`fixed bottom-6 right-6 z-50 px-4 py-3 rounded-xl shadow-xl flex items-center gap-2.5 text-sm font-bold text-white transition-all transform animate-in slide-in-from-bottom-4 ${
-          toastMsg.type === 'success' ? 'bg-emerald-600' : 'bg-red-600'
+        <div className={`fixed bottom-6 right-6 z-50 px-4 py-2.5 rounded-xl shadow-lg flex items-center gap-2 text-xs font-bold text-white animate-in slide-in-from-bottom-2 ${
+          toastMsg.type === 'success' ? 'bg-slate-900' : 'bg-red-600'
         }`}>
-          {toastMsg.type === 'success' ? <CheckCircle2 size={18} /> : <AlertCircle size={18} />}
+          {toastMsg.type === 'success' ? <Check size={14} className="text-emerald-400" /> : <AlertCircle size={14} />}
           <span>{toastMsg.text}</span>
         </div>
       )}
 
-      {/* ÜST BAŞLIK */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-200">
-        <div className="flex items-center gap-3">
-          <div className="w-12 h-12 bg-blue-600 rounded-2xl flex items-center justify-center text-white shadow-md shadow-blue-500/20">
-            <ImageIcon size={26} />
-          </div>
-          <div>
-            <h1 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">
-              Görsel Yönetim Merkezi
-            </h1>
-            <p className="text-xs sm:text-sm text-slate-500 font-medium">
-              Katalog ürün fotoğraflarını yükleyin, otomatik eşleyin, eksikleri tespit edin ve yönetin.
-            </p>
-          </div>
+      {/* SADE VE FERAH ÜST BAŞLIK */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-200">
+        <div>
+          <h1 className="text-xl font-bold text-slate-900 tracking-tight flex items-center gap-2">
+            <span>Görsel Yönetimi</span>
+            <span className="text-xs font-normal text-slate-500 bg-slate-100 px-2 py-0.5 rounded-full">
+              %{istatistik.dolulukOrani} Doluluk
+            </span>
+          </h1>
+          <p className="text-xs text-slate-500 mt-0.5">
+            Ürün fotoğraflarını görüntüleyin, eksikleri tamamlayın veya toplu fotoğraf aktarın.
+          </p>
         </div>
 
         <div className="flex items-center gap-2">
           <button
-            onClick={() => bulkFileInputRef.current?.click()}
-            className="px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs sm:text-sm rounded-xl transition-all flex items-center gap-2 shadow-sm"
+            onClick={() => setShowBulkModal(true)}
+            className="px-3.5 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl transition-all flex items-center gap-1.5 shadow-xs"
           >
-            <FolderUp size={16} />
-            <span>Toplu Görsel Seç</span>
+            <UploadCloud size={15} />
+            <span>Toplu Yükle</span>
           </button>
+
           <button
             onClick={fetchUrunler}
             disabled={loading}
-            className="p-2.5 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-xl transition-colors"
+            className="p-2 bg-white hover:bg-slate-50 border border-slate-200 text-slate-600 rounded-xl transition-colors shadow-xs"
             title="Listeyi Yenile"
           >
-            <RefreshCw size={18} className={loading ? 'animate-spin' : ''} />
+            <RefreshCw size={15} className={loading ? 'animate-spin' : ''} />
           </button>
         </div>
       </div>
 
-      {/* KPI İSTATİSTİK KARTLARI */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        {/* Toplam Ürün */}
-        <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-xs">
-          <div className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">
-            Toplam Stok Kaydı
-          </div>
-          <div className="text-2xl sm:text-3xl font-black text-slate-900">
-            {istatistik.toplamUrun.toLocaleString('tr-TR')}
-          </div>
-          <div className="text-[11px] text-slate-500 font-medium mt-1">
-            Veritabanındaki aktif ürünler
-          </div>
-        </div>
+      {/* KULLANIMI KOLAY FİLTRE VE ARAMA ÇUBUĞU */}
+      <div className="flex flex-col md:flex-row items-center justify-between gap-3 bg-white p-2.5 rounded-xl border border-slate-200 shadow-xs">
+        
+        {/* Filtre Sekmeleri */}
+        <div className="flex items-center p-1 bg-slate-100 rounded-lg w-full md:w-auto text-xs font-semibold">
+          <button
+            onClick={() => { setDurumFiltre('all'); setSayfa(1); }}
+            className={`px-3 py-1.5 rounded-md transition-all ${
+              durumFiltre === 'all' ? 'bg-white text-slate-900 shadow-xs font-bold' : 'text-slate-600 hover:text-slate-900'
+            }`}
+          >
+            Tümü ({istatistik.toplamUrun.toLocaleString('tr-TR')})
+          </button>
 
-        {/* Görseli Olanlar */}
-        <div className="bg-white p-4 rounded-2xl border border-emerald-200 bg-emerald-50/20 shadow-xs">
-          <div className="text-xs font-bold text-emerald-700 uppercase tracking-wider mb-1 flex items-center gap-1.5">
-            <CheckCircle2 size={14} />
-            <span>Görseli Mevcut</span>
-          </div>
-          <div className="text-2xl sm:text-3xl font-black text-emerald-700">
-            {istatistik.gorselliSayisi.toLocaleString('tr-TR')}
-          </div>
-          <div className="text-[11px] text-emerald-600 font-medium mt-1">
-            Fotoğrafı yüklenmiş ürünler
-          </div>
-        </div>
-
-        {/* Görselsiz (Eksikler) */}
-        <div 
-          onClick={() => { setDurumFiltre('gorselsiz'); setSayfa(1); }}
-          className="bg-white p-4 rounded-2xl border border-amber-300 bg-amber-50/30 shadow-xs cursor-pointer hover:border-amber-400 transition-all group"
-        >
-          <div className="text-xs font-bold text-amber-800 uppercase tracking-wider mb-1 flex items-center gap-1.5">
-            <AlertTriangle size={14} />
-            <span>Görseli Eksik Olanlar</span>
-          </div>
-          <div className="text-2xl sm:text-3xl font-black text-amber-800 group-hover:scale-105 transition-transform inline-block">
-            {istatistik.gorselsizSayisi.toLocaleString('tr-TR')}
-          </div>
-          <div className="text-[11px] text-amber-700 font-bold mt-1 underline">
-            Eksikleri Görmek İçin Tıklayın →
-          </div>
-        </div>
-
-        {/* Doluluk Oranı */}
-        <div className="bg-white p-4 rounded-2xl border border-blue-200 bg-blue-50/20 shadow-xs">
-          <div className="text-xs font-bold text-blue-700 uppercase tracking-wider mb-1 flex items-center gap-1.5">
-            <Sparkles size={14} />
-            <span>Katalog Doluluk Oranı</span>
-          </div>
-          <div className="text-2xl sm:text-3xl font-black text-blue-700">
-            %{istatistik.dolulukOrani}
-          </div>
-          <div className="w-full bg-slate-200 h-2 rounded-full mt-2 overflow-hidden">
-            <div 
-              className="bg-blue-600 h-full rounded-full transition-all duration-500" 
-              style={{ width: `${istatistik.dolulukOrani}%` }}
-            />
-          </div>
-        </div>
-      </div>
-
-      {/* TOPLU SÜRÜKLE & BIRAK YÜKLEME ALANI */}
-      <div
-        onDragOver={handleDragOver}
-        onDragLeave={handleDragLeave}
-        onDrop={handleDrop}
-        className={`p-6 sm:p-8 rounded-2xl border-2 border-dashed transition-all flex flex-col items-center justify-center text-center cursor-pointer ${
-          isDragging 
-            ? 'border-blue-500 bg-blue-50/70 scale-[1.01]' 
-            : 'border-slate-300 hover:border-blue-400 bg-white hover:bg-slate-50/60 shadow-xs'
-        }`}
-        onClick={() => bulkFileInputRef.current?.click()}
-      >
-        <div className="w-16 h-16 bg-blue-50 text-blue-600 rounded-2xl flex items-center justify-center mb-3 shadow-inner">
-          <UploadCloud size={32} />
-        </div>
-
-        <h3 className="text-base sm:text-lg font-bold text-slate-800">
-          Fotoğrafları Buraya Sürükleyip Bırakın
-        </h3>
-        <p className="text-xs sm:text-sm text-slate-500 max-w-xl mt-1">
-          Dosya isimleri ürün kodu ile eşleşecek şekilde otomatik temizlenir (Örn: <code className="bg-slate-100 text-slate-800 px-1 py-0.5 rounded font-mono">112001OEM.png</code> veya <code className="bg-slate-100 text-slate-800 px-1 py-0.5 rounded font-mono">20-001.webp</code>). Arka plan otomatik beyazlatılır ve 1000x1000 JPG formatına optimize edilir.
-        </p>
-
-        <div className="mt-4 flex items-center gap-2">
-          <span className="px-3 py-1.5 bg-blue-600 text-white font-bold text-xs rounded-xl shadow-xs">
-            Dosya Seç veya Sürükle
-          </span>
-          <span className="text-xs text-slate-400">Tek seferde 500+ görsel yüklenebilir</span>
-        </div>
-      </div>
-
-      {/* TOPLU YÜKLEME İLERLEME ÇUBUĞU */}
-      {isBulkUploading && bulkUploadProgress && (
-        <div className="bg-white p-5 rounded-2xl border border-blue-200 shadow-md space-y-3 animate-in fade-in">
-          <div className="flex items-center justify-between text-sm">
-            <span className="font-bold text-slate-800 flex items-center gap-2">
-              <Loader2 size={16} className="animate-spin text-blue-600" />
-              <span>Görseller İşleniyor ve Optimize Ediliyor...</span>
+          <button
+            onClick={() => { setDurumFiltre('gorselsiz'); setSayfa(1); }}
+            className={`px-3 py-1.5 rounded-md transition-all flex items-center gap-1.5 ${
+              durumFiltre === 'gorselsiz' 
+                ? 'bg-amber-500 text-slate-950 shadow-xs font-bold' 
+                : 'text-amber-700 hover:bg-amber-100/50'
+            }`}
+          >
+            <span>❌ Görselsiz</span>
+            <span className="text-[10px] bg-amber-600/20 px-1 py-0.2 rounded font-mono">
+              {istatistik.gorselsizSayisi.toLocaleString('tr-TR')}
             </span>
-            <span className="font-mono font-bold text-blue-600">
-              {bulkUploadProgress.done} / {bulkUploadProgress.total} (%{Math.round((bulkUploadProgress.done / bulkUploadProgress.total) * 100)})
+          </button>
+
+          <button
+            onClick={() => { setDurumFiltre('gorselli'); setSayfa(1); }}
+            className={`px-3 py-1.5 rounded-md transition-all flex items-center gap-1.5 ${
+              durumFiltre === 'gorselli' 
+                ? 'bg-emerald-600 text-white shadow-xs font-bold' 
+                : 'text-slate-600 hover:text-slate-900'
+            }`}
+          >
+            <span>✓ Görselli</span>
+            <span className="text-[10px] opacity-80 font-mono">
+              ({istatistik.gorselliSayisi.toLocaleString('tr-TR')})
             </span>
-          </div>
+          </button>
+        </div>
 
-          <div className="w-full bg-slate-100 h-3 rounded-full overflow-hidden">
-            <div 
-              className="bg-blue-600 h-full rounded-full transition-all duration-300"
-              style={{ width: `${(bulkUploadProgress.done / bulkUploadProgress.total) * 100}%` }}
+        {/* Hızlı Arama */}
+        <form onSubmit={handleSearchSubmit} className="flex items-center gap-1.5 w-full md:w-80">
+          <div className="relative flex-1">
+            <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+            <input
+              type="text"
+              value={searchInput}
+              onChange={(e) => setSearchInput(e.target.value)}
+              placeholder="Ürün Kodu, OEM veya Ad..."
+              className="w-full pl-8 pr-7 py-1.5 bg-slate-50 border border-slate-200 focus:border-blue-500 focus:bg-white rounded-lg text-xs font-medium outline-none transition-all"
             />
+            {searchInput && (
+              <button
+                type="button"
+                onClick={() => { setSearchInput(''); setSearch(''); setSayfa(1); }}
+                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 text-xs"
+              >
+                ✕
+              </button>
+            )}
           </div>
-
-          <div className="flex items-center gap-4 text-xs font-semibold">
-            <span className="text-emerald-600">✅ Başarılı: {bulkUploadProgress.success}</span>
-            <span className="text-red-500">❌ Hatalı: {bulkUploadProgress.fail}</span>
-          </div>
-        </div>
-      )}
-
-      {/* ARAMA VE FİLTRELEME ÇUBUĞU */}
-      <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-xs space-y-4">
-        <div className="flex flex-col md:flex-row items-center justify-between gap-3">
-          
-          {/* Durum Filtre Butonları (Tümü / Görselli / Görselsiz) */}
-          <div className="flex items-center p-1 bg-slate-100 rounded-xl w-full md:w-auto">
-            <button
-              onClick={() => { setDurumFiltre('all'); setSayfa(1); }}
-              className={`flex-1 md:flex-none px-4 py-2 rounded-lg text-xs font-bold transition-all ${
-                durumFiltre === 'all' ? 'bg-white text-slate-900 shadow-xs' : 'text-slate-600 hover:text-slate-900'
-              }`}
-            >
-              Tümü ({istatistik.toplamUrun})
-            </button>
-            <button
-              onClick={() => { setDurumFiltre('gorselsiz'); setSayfa(1); }}
-              className={`flex-1 md:flex-none px-4 py-2 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-1.5 ${
-                durumFiltre === 'gorselsiz' ? 'bg-amber-500 text-slate-950 shadow-xs font-black' : 'text-slate-600 hover:text-slate-900'
-              }`}
-            >
-              <span>❌ Görselsiz Ürünler</span>
-              <span className="bg-amber-600/20 text-slate-900 px-1.5 py-0.5 rounded text-[10px]">
-                {istatistik.gorselsizSayisi}
-              </span>
-            </button>
-            <button
-              onClick={() => { setDurumFiltre('gorselli'); setSayfa(1); }}
-              className={`flex-1 md:flex-none px-4 py-2 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-1.5 ${
-                durumFiltre === 'gorselli' ? 'bg-emerald-600 text-white shadow-xs' : 'text-slate-600 hover:text-slate-900'
-              }`}
-            >
-              <span>✅ Görselli</span>
-              <span className="bg-white/20 text-white px-1.5 py-0.5 rounded text-[10px]">
-                {istatistik.gorselliSayisi}
-              </span>
-            </button>
-          </div>
-
-          {/* Arama Kutusu */}
-          <form onSubmit={handleSearchSubmit} className="flex items-center gap-2 w-full md:w-96">
-            <div className="relative flex-1">
-              <Search size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
-              <input
-                type="text"
-                value={searchInput}
-                onChange={(e) => setSearchInput(e.target.value)}
-                placeholder="Ürün Kodu, Açıklama, OEM veya Raf..."
-                className="w-full pl-10 pr-3 py-2 bg-slate-50 border border-slate-200 focus:border-blue-500 focus:bg-white rounded-xl text-xs sm:text-sm font-medium outline-none transition-all"
-              />
-              {searchInput && (
-                <button
-                  type="button"
-                  onClick={() => { setSearchInput(''); setSearch(''); setSayfa(1); }}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 text-xs font-bold"
-                >
-                  ✕
-                </button>
-              )}
-            </div>
-            <button
-              type="submit"
-              className="px-4 py-2 bg-slate-800 hover:bg-slate-900 text-white font-bold text-xs sm:text-sm rounded-xl transition-colors"
-            >
-              Ara
-            </button>
-          </form>
-        </div>
+          <button
+            type="submit"
+            className="px-3 py-1.5 bg-slate-800 hover:bg-slate-900 text-white font-bold text-xs rounded-lg transition-colors"
+          >
+            Ara
+          </button>
+        </form>
       </div>
 
-      {/* ÜRÜN KARTLARI GRİDİ */}
+      {/* SADE VE DÜZENLİ ÜRÜN KARTLARI */}
       {loading ? (
-        <div className="py-20 flex flex-col items-center justify-center gap-3 text-slate-400">
-          <Loader2 size={36} className="animate-spin text-blue-600" />
-          <span className="text-sm font-medium">Ürünler ve görseller taranıyor...</span>
+        <div className="py-24 flex flex-col items-center justify-center gap-2 text-slate-400">
+          <Loader2 size={28} className="animate-spin text-blue-600" />
+          <span className="text-xs">Yükleniyor...</span>
         </div>
       ) : urunler.length === 0 ? (
-        <div className="py-20 bg-white rounded-2xl border border-slate-200 text-center p-6 space-y-3">
-          <FileImage size={48} className="mx-auto text-slate-300" />
-          <h3 className="text-base font-bold text-slate-700">Hiçbir Ürün Bulunamadı</h3>
-          <p className="text-xs text-slate-500">Seçili filtrelere uygun ürün kaydı mevcut değil.</p>
+        <div className="py-16 bg-white rounded-xl border border-slate-200 text-center p-6 space-y-2">
+          <FileImage size={36} className="mx-auto text-slate-300" />
+          <h3 className="text-sm font-bold text-slate-700">Ürün Bulunamadı</h3>
+          <p className="text-xs text-slate-400">Seçili filtrelere uygun ürün kaydı mevcut değil.</p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3">
           {urunler.map((urun) => {
             const isProcessingThis = processingKod === urun.urunkodu;
             const imgPath = `/images/urunler/${getCleanedCode(urun.urunkodu)}.jpg?v=${globalImageVersion}`;
@@ -592,112 +432,76 @@ export default function GorselYonetimPage() {
             return (
               <div 
                 key={urun.urunkodu}
-                className={`bg-white rounded-2xl border transition-all duration-200 flex flex-col justify-between overflow-hidden relative shadow-xs hover:shadow-md ${
-                  urun.gorselVar ? 'border-slate-200' : 'border-amber-200/80 bg-amber-50/10'
-                }`}
+                className="bg-white rounded-xl border border-slate-200 hover:border-slate-300 transition-all flex flex-col justify-between overflow-hidden shadow-2xs group relative"
               >
-                {/* Ürün Durum Rozeti */}
-                <div className="absolute top-2.5 left-2.5 z-10 flex items-center gap-1">
-                  {urun.gorselVar ? (
-                    <span className="px-2 py-0.5 bg-emerald-100/90 text-emerald-800 font-bold text-[9px] rounded-md backdrop-blur-xs flex items-center gap-1">
-                      <Check size={10} />
-                      <span>Görsel Var</span>
-                    </span>
-                  ) : (
-                    <span className="px-2 py-0.5 bg-amber-100/90 text-amber-800 font-bold text-[9px] rounded-md backdrop-blur-xs flex items-center gap-1">
-                      <AlertTriangle size={10} />
-                      <span>Görsel Eksik</span>
-                    </span>
-                  )}
-                </div>
-
-                {/* Raf Rozeti */}
-                {urun.Raf && (
-                  <div className="absolute top-2.5 right-2.5 z-10">
-                    <span className="px-2 py-0.5 bg-slate-900/70 text-white font-mono font-bold text-[9px] rounded-md backdrop-blur-xs">
-                      {urun.Raf}
-                    </span>
-                  </div>
-                )}
-
-                {/* Görsel Önizleme Alanı */}
+                {/* Görsel Alanı */}
                 <div 
-                  className="w-full h-44 bg-slate-50 relative flex items-center justify-center p-3 border-b border-slate-100 group cursor-pointer"
+                  className="w-full h-32 sm:h-36 bg-slate-50/60 relative flex items-center justify-center p-2 border-b border-slate-100 cursor-pointer"
                   onClick={() => {
                     if (urun.gorselVar) {
-                      setZoomGorsel({
-                        src: imgPath,
-                        kod: urun.urunkodu,
-                        title: urun.urun
-                      });
+                      setZoomGorsel({ src: imgPath, kod: urun.urunkodu, title: urun.urun });
                     }
                   }}
                 >
                   {isProcessingThis ? (
-                    <div className="flex flex-col items-center gap-1.5 text-blue-600">
-                      <Loader2 size={24} className="animate-spin" />
-                      <span className="text-[10px] font-bold">İşleniyor...</span>
+                    <div className="flex flex-col items-center gap-1 text-blue-600">
+                      <Loader2 size={20} className="animate-spin" />
+                      <span className="text-[9px] font-bold">Kaydediliyor...</span>
                     </div>
                   ) : urun.gorselVar ? (
                     <>
                       <img
                         src={imgPath}
                         alt={urun.urun}
-                        className="w-full h-full object-contain transition-transform duration-200 group-hover:scale-105"
+                        className="w-full h-full object-contain transition-transform group-hover:scale-105"
                         onError={(e) => {
                           const target = e.currentTarget;
-                          if (target.src !== 'https://placehold.co/300x300?text=Resim+Yok') {
-                            target.src = 'https://placehold.co/300x300?text=Resim+Yok';
+                          if (target.src !== 'https://placehold.co/200x200?text=Yok') {
+                            target.src = 'https://placehold.co/200x200?text=Yok';
                           }
                         }}
                       />
-                      <div className="absolute inset-0 bg-slate-950/20 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                        <span className="p-2 bg-white/95 text-slate-800 rounded-xl shadow-md text-xs font-bold flex items-center gap-1">
-                          <Maximize2 size={13} />
-                          <span>Büyüt</span>
+                      <div className="absolute inset-0 bg-slate-900/10 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                        <span className="p-1.5 bg-white/90 text-slate-700 rounded-lg shadow-xs text-[10px] font-bold flex items-center gap-1">
+                          <Maximize2 size={11} />
                         </span>
                       </div>
                     </>
                   ) : (
-                    <div className="flex flex-col items-center justify-center gap-2 text-slate-300">
-                      <FileImage size={40} />
-                      <span className="text-[11px] font-bold text-slate-400">Görsel Yüklenmemiş</span>
-                    </div>
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setActiveUploadKod(urun.urunkodu);
+                        singleFileInputRef.current?.click();
+                      }}
+                      className="flex flex-col items-center justify-center gap-1 text-slate-400 hover:text-blue-600 transition-colors"
+                    >
+                      <Plus size={20} className="stroke-[2.5]" />
+                      <span className="text-[10px] font-bold">Görsel Ekle</span>
+                    </button>
                   )}
                 </div>
 
-                {/* Ürün Bilgileri */}
-                <div className="p-3.5 space-y-1.5 flex-1 flex flex-col justify-between">
+                {/* Ürün Künyesi */}
+                <div className="p-2.5 space-y-1 flex-1 flex flex-col justify-between">
                   <div>
-                    <div className="flex items-center gap-1.5 text-[10px] text-slate-400 font-semibold uppercase">
-                      <span>{urun.grubu || 'GENEL'}</span>
-                      {urun.kategori && <span>• {urun.kategori}</span>}
-                    </div>
-
-                    <h4 className="font-mono font-bold text-slate-900 text-sm tracking-tight truncate mt-0.5">
+                    <div className="font-mono font-bold text-slate-900 text-xs truncate" title={urun.urunkodu}>
                       {urun.urunkodu}
-                    </h4>
-
-                    <p className="text-xs text-slate-600 line-clamp-2 mt-0.5" title={urun.urun}>
+                    </div>
+                    <p className="text-[11px] text-slate-500 truncate" title={urun.urun}>
                       {urun.urun}
                     </p>
                   </div>
 
-                  {/* Stok ve OEM */}
-                  <div className="pt-2 border-t border-slate-100 flex items-center justify-between text-[11px]">
-                    <span className="text-slate-400">
-                      Stok: <strong className="text-slate-800">{urun.MevcutBakiye} Adet</strong>
-                    </span>
-                    {urun.OEM && (
-                      <span className="font-mono text-[10px] text-slate-400 truncate max-w-[120px]" title={urun.OEM}>
-                        OEM: {urun.OEM}
-                      </span>
-                    )}
+                  <div className="text-[10px] text-slate-400 flex items-center justify-between pt-1 border-t border-slate-100">
+                    <span>{urun.Raf ? `Raf: ${urun.Raf}` : 'Raf yok'}</span>
+                    <span className="font-semibold text-slate-600">{urun.MevcutBakiye} Ad</span>
                   </div>
                 </div>
 
-                {/* Hızlı Aksiyon Butonları (Fotoğraf Çek / Dosya Seç / Sil) */}
-                <div className="p-2.5 bg-slate-50/80 border-t border-slate-100 flex items-center justify-between gap-1.5">
+                {/* Hızlı Aksiyon Barı (Sade Butonlar) */}
+                <div className="p-1.5 bg-slate-50 border-t border-slate-100 flex items-center justify-center gap-1">
                   <button
                     type="button"
                     onClick={() => {
@@ -705,11 +509,10 @@ export default function GorselYonetimPage() {
                       singleCameraInputRef.current?.click();
                     }}
                     disabled={isProcessingThis}
-                    className="flex-1 py-1.5 px-2 bg-blue-600 hover:bg-blue-700 disabled:bg-slate-200 text-white font-bold text-[10px] rounded-lg transition-all flex items-center justify-center gap-1 shadow-xs"
+                    className="p-1.5 bg-white hover:bg-slate-100 text-slate-600 rounded-md border border-slate-200 transition-colors"
                     title="Kamera ile çek"
                   >
-                    <Camera size={12} />
-                    <span>Çek</span>
+                    <Camera size={13} />
                   </button>
 
                   <button
@@ -719,11 +522,10 @@ export default function GorselYonetimPage() {
                       singleFileInputRef.current?.click();
                     }}
                     disabled={isProcessingThis}
-                    className="flex-1 py-1.5 px-2 bg-white hover:bg-slate-100 disabled:bg-slate-50 text-slate-700 font-bold text-[10px] rounded-lg transition-all border border-slate-200 flex items-center justify-center gap-1"
+                    className="p-1.5 bg-white hover:bg-slate-100 text-slate-600 rounded-md border border-slate-200 transition-colors"
                     title="Dosya seçip yükle"
                   >
-                    <FolderUp size={12} />
-                    <span>{urun.gorselVar ? 'Değiştir' : 'Yükle'}</span>
+                    <UploadCloud size={13} />
                   </button>
 
                   {urun.gorselVar && (
@@ -731,10 +533,10 @@ export default function GorselYonetimPage() {
                       type="button"
                       onClick={() => handleSingleDelete(urun.urunkodu)}
                       disabled={isProcessingThis}
-                      className="py-1.5 px-2 bg-red-50 hover:bg-red-100 text-red-600 font-bold text-[10px] rounded-lg transition-colors border border-red-200 flex items-center justify-center"
+                      className="p-1.5 bg-white hover:bg-red-50 text-red-500 rounded-md border border-slate-200 transition-colors"
                       title="Görseli sil"
                     >
-                      <Trash2 size={12} />
+                      <Trash2 size={13} />
                     </button>
                   )}
                 </div>
@@ -745,60 +547,132 @@ export default function GorselYonetimPage() {
         </div>
       )}
 
-      {/* SAYFALAMA (PAGINATION) */}
+      {/* SAYFALAMA */}
       {toplamSayfa > 1 && (
-        <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-4 border-t border-slate-200">
-          <div className="text-xs text-slate-500 font-medium">
-            Toplam <strong className="text-slate-800">{toplamKayit}</strong> üründen <strong>{(sayfa - 1) * limit + 1}</strong> - <strong>{Math.min(sayfa * limit, toplamKayit)}</strong> arası gösteriliyor.
-          </div>
+        <div className="flex items-center justify-between pt-3 border-t border-slate-200 text-xs">
+          <span className="text-slate-500">
+            Toplam <strong>{toplamKayit.toLocaleString('tr-TR')}</strong> üründen {(sayfa - 1) * limit + 1} - {Math.min(sayfa * limit, toplamKayit)} arası
+          </span>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1.5">
             <button
               onClick={() => setSayfa(p => Math.max(1, p - 1))}
               disabled={sayfa === 1 || loading}
-              className="p-2 bg-white border border-slate-200 disabled:opacity-40 rounded-xl hover:bg-slate-50 transition-colors text-slate-700"
+              className="p-1.5 bg-white border border-slate-200 disabled:opacity-40 rounded-lg hover:bg-slate-50 text-slate-700"
             >
-              <ChevronLeft size={16} />
+              <ChevronLeft size={14} />
             </button>
-            <span className="text-xs font-bold text-slate-700 px-3">
-              Sayfa {sayfa} / {toplamSayfa}
+            <span className="font-bold text-slate-700 px-2">
+              {sayfa} / {toplamSayfa}
             </span>
             <button
               onClick={() => setSayfa(p => Math.min(toplamSayfa, p + 1))}
               disabled={sayfa === toplamSayfa || loading}
-              className="p-2 bg-white border border-slate-200 disabled:opacity-40 rounded-xl hover:bg-slate-50 transition-colors text-slate-700"
+              className="p-1.5 bg-white border border-slate-200 disabled:opacity-40 rounded-lg hover:bg-slate-50 text-slate-700"
             >
-              <ChevronRight size={16} />
+              <ChevronRight size={14} />
             </button>
           </div>
         </div>
       )}
 
-      {/* LIGHTBOX BÜYÜK GÖRSEL MODALI */}
+      {/* SADE TOPLU YÜKLEME MODALI */}
+      {showBulkModal && (
+        <div 
+          className="fixed inset-0 z-50 bg-slate-950/50 backdrop-blur-xs flex items-center justify-center p-4"
+          onClick={() => { if (!isBulkUploading) setShowBulkModal(false); }}
+        >
+          <div 
+            className="bg-white rounded-2xl max-w-lg w-full p-6 shadow-2xl space-y-4 animate-in zoom-in-95 duration-150"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+              <div className="flex items-center gap-2">
+                <UploadCloud size={20} className="text-blue-600" />
+                <h3 className="font-bold text-slate-900 text-base">Toplu Görsel Yükle</h3>
+              </div>
+              <button
+                onClick={() => { if (!isBulkUploading) setShowBulkModal(false); }}
+                className="text-slate-400 hover:text-slate-600 text-sm p-1"
+              >
+                ✕
+              </button>
+            </div>
+
+            <div 
+              onClick={() => bulkFileInputRef.current?.click()}
+              className="border-2 border-dashed border-slate-300 hover:border-blue-500 rounded-xl p-8 text-center cursor-pointer bg-slate-50/50 hover:bg-blue-50/30 transition-all space-y-2"
+            >
+              <div className="w-12 h-12 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center mx-auto">
+                <UploadCloud size={24} />
+              </div>
+              <div className="font-bold text-slate-800 text-sm">
+                Fotoğrafları Seçin veya Buraya Bırakın
+              </div>
+              <p className="text-xs text-slate-500 max-w-xs mx-auto">
+                Dosya adları (Örn: <code>112001.jpg</code>) otomatik olarak ürün kodları ile eşleşir.
+              </p>
+            </div>
+
+            {/* İlerleme Çubuğu */}
+            {isBulkUploading && bulkUploadProgress && (
+              <div className="space-y-2 pt-2">
+                <div className="flex justify-between text-xs font-bold text-slate-700">
+                  <span>Yükleniyor...</span>
+                  <span>{bulkUploadProgress.done} / {bulkUploadProgress.total}</span>
+                </div>
+                <div className="w-full bg-slate-100 h-2 rounded-full overflow-hidden">
+                  <div 
+                    className="bg-blue-600 h-full rounded-full transition-all"
+                    style={{ width: `${(bulkUploadProgress.done / bulkUploadProgress.total) * 100}%` }}
+                  />
+                </div>
+              </div>
+            )}
+
+            <div className="flex justify-end gap-2 pt-2">
+              <button
+                type="button"
+                onClick={() => setShowBulkModal(false)}
+                disabled={isBulkUploading}
+                className="px-4 py-2 text-xs font-bold text-slate-600 hover:bg-slate-100 rounded-lg transition-colors"
+              >
+                Kapat
+              </button>
+              <button
+                type="button"
+                onClick={() => bulkFileInputRef.current?.click()}
+                disabled={isBulkUploading}
+                className="px-4 py-2 text-xs font-bold bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors shadow-xs"
+              >
+                Dosya Seç
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* LIGHTBOX BÜYÜK GÖRSEL */}
       {zoomGorsel && (
         <div 
-          className="fixed inset-0 z-[100] bg-black/95 flex flex-col items-center justify-center p-4"
+          className="fixed inset-0 z-[100] bg-black/90 flex flex-col items-center justify-center p-4"
           onClick={() => setZoomGorsel(null)}
         >
           <button
             onClick={() => setZoomGorsel(null)}
-            className="absolute top-4 right-4 text-white/80 hover:text-white p-2.5 rounded-full bg-white/10 hover:bg-white/20 transition-all"
+            className="absolute top-4 right-4 text-white/80 hover:text-white p-2"
           >
             <X size={24} />
           </button>
-
-          <div className="text-center text-white mb-3">
-            <span className="font-mono font-bold text-lg">{zoomGorsel.kod}</span>
+          <div className="text-center text-white mb-2">
+            <span className="font-mono font-bold">{zoomGorsel.kod}</span>
             <p className="text-xs text-white/70">{zoomGorsel.title}</p>
           </div>
-
-          <div className="max-w-4xl max-h-[80vh] flex items-center justify-center p-2">
-            <img 
-              src={zoomGorsel.src} 
-              alt={zoomGorsel.title}
-              className="max-w-full max-h-[80vh] object-contain rounded-xl shadow-2xl" 
-            />
-          </div>
+          <img 
+            src={zoomGorsel.src} 
+            alt={zoomGorsel.title}
+            className="max-w-3xl max-h-[75vh] object-contain rounded-lg" 
+          />
         </div>
       )}
 

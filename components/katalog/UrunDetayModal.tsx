@@ -28,6 +28,12 @@ export default function UrunDetayModal({
   const [isImageProcessing, setIsImageProcessing] = useState(false);
   const [imageMsg, setImageMsg] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const [hasValidImage, setHasValidImage] = useState<boolean>(true);
+
+  // Düzenleme modunda geçici (staged) görsel değişiklikleri
+  const [pendingImageFile, setPendingImageFile] = useState<File | null>(null);
+  const [pendingImageDelete, setPendingImageDelete] = useState<boolean>(false);
+  const [previewImageUrl, setPreviewImageUrl] = useState<string | null>(null);
+
   const fileInputRef = useRef<HTMLInputElement>(null);
   const cameraInputRef = useRef<HTMLInputElement>(null);
 
@@ -58,72 +64,50 @@ export default function UrunDetayModal({
 
   const urunKodu = urun?.urunkodu;
 
-  // Ürün değiştiğinde görsel sürümünü sıfırla
+  // Ürün değiştiğinde görsel sürümünü ve bekleyen değişiklikleri sıfırla
   useEffect(() => {
     setImageVersion(Date.now());
     setHasValidImage(true);
     setImageMsg(null);
+    setPendingImageFile(null);
+    setPendingImageDelete(false);
+    if (previewImageUrl) {
+      URL.revokeObjectURL(previewImageUrl);
+      setPreviewImageUrl(null);
+    }
   }, [urunKodu]);
 
-  // Görsel yükleme işlemi
-  const handleUploadImage = async (file: File) => {
-    if (!urun) return;
-    setIsImageProcessing(true);
-    setImageMsg(null);
-
-    const formData = new FormData();
-    formData.append('urunkodu', urun.urunkodu);
-    formData.append('file', file);
-
-    try {
-      const res = await fetch('/api/gorsel/yukle', {
-        method: 'POST',
-        body: formData,
-      });
-      const data = await res.json();
-      if (!res.ok || !data.success) {
-        throw new Error(data.error || 'Görsel yüklenemedi.');
-      }
-      setImageVersion(Date.now());
-      setHasValidImage(true);
-      setImageMsg({ type: 'success', text: 'Görsel güncellendi' });
-      setTimeout(() => setImageMsg(null), 3000);
-    } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : 'Yükleme başarısız';
-      setImageMsg({ type: 'error', text: msg });
-    } finally {
-      setIsImageProcessing(false);
+  // Düzenleme modunda yeni görsel seçildiğinde (Kaydet'e basana kadar bekletilir)
+  const handleSelectImageForEditing = (file: File) => {
+    if (previewImageUrl) {
+      URL.revokeObjectURL(previewImageUrl);
     }
+    const previewUrl = URL.createObjectURL(file);
+    setPendingImageFile(file);
+    setPendingImageDelete(false);
+    setPreviewImageUrl(previewUrl);
+    setHasValidImage(true);
   };
 
-  // Görsel silme işlemi
-  const handleDeleteImage = async () => {
-    if (!urun) return;
-    if (!confirm(`${urun.urunkodu} kodlu ürünün görselini silmek istediğinize emin misiniz?`)) return;
-
-    setIsImageProcessing(true);
-    setImageMsg(null);
-
-    try {
-      const res = await fetch('/api/gorsel/sil', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ urunkodu: urun.urunkodu }),
-      });
-      const data = await res.json();
-      if (!res.ok || !data.success) {
-        throw new Error(data.error || 'Görsel silinemedi.');
-      }
-      setImageVersion(Date.now());
-      setHasValidImage(false);
-      setImageMsg({ type: 'success', text: 'Görsel silindi' });
-      setTimeout(() => setImageMsg(null), 3000);
-    } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : 'Silme başarısız';
-      setImageMsg({ type: 'error', text: msg });
-    } finally {
-      setIsImageProcessing(false);
+  // Düzenleme modunda görseli silme isteği (Kaydet'e basana kadar bekletilir)
+  const handleStageImageDelete = () => {
+    if (previewImageUrl) {
+      URL.revokeObjectURL(previewImageUrl);
     }
+    setPendingImageFile(null);
+    setPendingImageDelete(true);
+    setPreviewImageUrl('https://placehold.co/400x400?text=G%C3%B6rsel+Silinecek');
+  };
+
+  // Düzenlemeyi İptal Et
+  const handleCancelEditing = () => {
+    if (previewImageUrl) {
+      URL.revokeObjectURL(previewImageUrl);
+      setPreviewImageUrl(null);
+    }
+    setPendingImageFile(null);
+    setPendingImageDelete(false);
+    setIsEditing(false);
   };
 
   useEffect(() => {
@@ -171,6 +155,7 @@ export default function UrunDetayModal({
   const handleUrunKaydet = async () => {
     setIsSaving(true);
     try {
+      // 1. Ürün Metin ve Raf Bilgilerini Kaydet
       const response = await fetch('/api/urun-duzenle', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -183,7 +168,40 @@ export default function UrunDetayModal({
       });
 
       const resData = await response.json();
-      if (!response.ok) throw new Error(resData.error || 'Güncelleme başarısız.');
+      if (!response.ok) throw new Error(resData.error || 'Bilgiler güncellenemedi.');
+
+      // 2. Bekleyen Görsel Değişikliği Varsa Uygula
+      if (pendingImageDelete) {
+        await fetch('/api/gorsel/sil', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ urunkodu: urun.urunkodu }),
+        });
+        setHasValidImage(false);
+      } else if (pendingImageFile) {
+        const formData = new FormData();
+        formData.append('urunkodu', urun.urunkodu);
+        formData.append('file', pendingImageFile);
+
+        const imgRes = await fetch('/api/gorsel/yukle', {
+          method: 'POST',
+          body: formData,
+        });
+        const imgData = await imgRes.json();
+        if (!imgRes.ok || !imgData.success) {
+          throw new Error(imgData.error || 'Görsel kaydedilemedi.');
+        }
+        setHasValidImage(true);
+      }
+
+      // 3. Başarıyla tamamlandı, durumları güncelle
+      setImageVersion(Date.now());
+      if (previewImageUrl) {
+        URL.revokeObjectURL(previewImageUrl);
+        setPreviewImageUrl(null);
+      }
+      setPendingImageFile(null);
+      setPendingImageDelete(false);
 
       const guncelUrun: Urun = {
         ...urun,
@@ -284,29 +302,34 @@ export default function UrunDetayModal({
         <div className="w-full md:w-[42%] bg-slate-50/70 p-4 md:p-6 flex flex-col justify-between items-center relative border-b md:border-b-0 md:border-r border-slate-100 shrink-0 min-h-[360px] md:min-h-0">
           
           {/* Gizli Dosya ve Kamera Inputları */}
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept="image/png,image/jpeg,image/webp,image/jpg"
-            className="hidden"
-            onChange={(e) => {
-              const file = e.target.files?.[0];
-              if (file) handleUploadImage(file);
-              e.target.value = '';
-            }}
-          />
-          <input
-            ref={cameraInputRef}
-            type="file"
-            accept="image/*"
-            capture="environment"
-            className="hidden"
-            onChange={(e) => {
-              const file = e.target.files?.[0];
-              if (file) handleUploadImage(file);
-              e.target.value = '';
-            }}
-          />
+          {/* Gizli Dosya ve Kamera Inputları (Sadece Düzenleme Modunda Çalışır) */}
+          {isEditing && (
+            <>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/png,image/jpeg,image/webp,image/jpg"
+                className="hidden"
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  if (file) handleSelectImageForEditing(file);
+                  e.target.value = '';
+                }}
+              />
+              <input
+                ref={cameraInputRef}
+                type="file"
+                accept="image/*"
+                capture="environment"
+                className="hidden"
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  if (file) handleSelectImageForEditing(file);
+                  e.target.value = '';
+                }}
+              />
+            </>
+          )}
 
           {/* Üst Rozetler */}
           <div className="w-full flex items-center justify-between mb-2">
@@ -314,34 +337,33 @@ export default function UrunDetayModal({
               {isStoktaYok ? '● Stokta Yok' : '● Stokta Mevcut'}
             </span>
 
-            {imageMsg && (
-              <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full flex items-center gap-1 animate-in fade-in slide-in-from-top-1 ${
-                imageMsg.type === 'success' ? 'bg-emerald-100 text-emerald-700' : 'bg-red-100 text-red-700'
-              }`}>
-                {imageMsg.type === 'success' ? <Check size={11} /> : <AlertCircle size={11} />}
-                {imageMsg.text}
+            {isEditing && (
+              <span className="text-[9px] font-bold px-2 py-0.5 rounded-md bg-blue-100 text-blue-800 animate-in fade-in">
+                ✏️ Düzenleme Modu
               </span>
             )}
           </div>
 
           {/* Görsel Kutusu */}
           <div 
-            className="w-full flex-1 flex items-center justify-center relative group cursor-zoom-in min-h-[220px] max-h-[300px] bg-white rounded-xl border border-slate-200/80 p-2 shadow-xs overflow-hidden" 
-            onClick={() => { if (!isSaving && !isImageProcessing) setIsZoomed(true); }}
+            className={`w-full flex-1 flex items-center justify-center relative group min-h-[220px] max-h-[300px] bg-white rounded-xl border p-2 shadow-xs overflow-hidden transition-all ${
+              isEditing ? 'border-blue-400 ring-2 ring-blue-500/10' : 'border-slate-200/80 cursor-zoom-in'
+            }`} 
+            onClick={() => { if (!isSaving && !isEditing) setIsZoomed(true); }}
           >
-            {isImageProcessing && (
+            {isSaving && (
               <div className="absolute inset-0 bg-white/80 backdrop-blur-xs z-30 flex flex-col items-center justify-center gap-2">
                 <Loader2 size={32} className="animate-spin text-blue-600" />
-                <span className="text-xs font-bold text-slate-700">Görsel İşleniyor...</span>
+                <span className="text-xs font-bold text-slate-700">Kaydediliyor...</span>
               </div>
             )}
 
             <img
-              key={`${urun.urunkodu}-${imageVersion}`}
-              src={`/images/urunler/${getCleanedCode(urun.urunkodu)}.jpg?v=${imageVersion}`}
+              key={`${urun.urunkodu}-${imageVersion}-${previewImageUrl || 'orig'}`}
+              src={previewImageUrl || `/images/urunler/${getCleanedCode(urun.urunkodu)}.jpg?v=${imageVersion}`}
               className="w-full h-full object-contain p-2 transition-transform hover:scale-[1.03]"
               alt={urun.urun}
-              onLoad={() => setHasValidImage(true)}
+              onLoad={() => { if (!pendingImageDelete) setHasValidImage(true); }}
               onError={(e) => {
                 setHasValidImage(false);
                 const target = e.currentTarget;
@@ -351,52 +373,75 @@ export default function UrunDetayModal({
               }}
             />
 
-            <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity hidden md:flex bg-black/10 rounded-xl pointer-events-none">
-              <span className="bg-slate-900/80 text-white px-3 py-1.5 rounded-lg text-xs font-semibold backdrop-blur-xs shadow-md">
-                🔍 Büyütmek için tıkla
-              </span>
-            </div>
-          </div>
-
-          {/* Hızlı Görsel Aksiyon Araç Çubuğu */}
-          <div className="w-full mt-3 pt-3 border-t border-slate-200/60 flex items-center justify-between gap-1.5">
-            <div className="flex items-center gap-1.5 flex-1">
-              <button
-                type="button"
-                onClick={() => cameraInputRef.current?.click()}
-                disabled={isImageProcessing}
-                className="flex-1 py-1.5 px-2 bg-blue-600 hover:bg-blue-700 disabled:bg-slate-200 text-white disabled:text-slate-400 font-bold text-[11px] rounded-lg transition-all flex items-center justify-center gap-1.5 shadow-xs"
-                title="Cihaz kamerası ile yeni fotoğraf çek"
-              >
-                <Camera size={13} />
-                <span>Fotoğraf Çek</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => fileInputRef.current?.click()}
-                disabled={isImageProcessing}
-                className="flex-1 py-1.5 px-2 bg-slate-100 hover:bg-slate-200 disabled:bg-slate-50 text-slate-700 disabled:text-slate-400 font-bold text-[11px] rounded-lg transition-all flex items-center justify-center gap-1.5 border border-slate-200"
-                title="Bilgisayardan dosya seçip yükle"
-              >
-                <Upload size={13} />
-                <span>Yükle</span>
-              </button>
-            </div>
-
-            {hasValidImage && (
-              <button
-                type="button"
-                onClick={handleDeleteImage}
-                disabled={isImageProcessing}
-                className="py-1.5 px-2.5 bg-red-50 hover:bg-red-100 disabled:opacity-50 text-red-600 font-bold text-[11px] rounded-lg transition-colors border border-red-200 flex items-center justify-center gap-1"
-                title="Mevcut görseli sil"
-              >
-                <Trash2 size={13} />
-                <span className="hidden sm:inline">Sil</span>
-              </button>
+            {!isEditing && (
+              <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity hidden md:flex bg-black/10 rounded-xl pointer-events-none">
+                <span className="bg-slate-900/80 text-white px-3 py-1.5 rounded-lg text-xs font-semibold backdrop-blur-xs shadow-md">
+                  🔍 Büyütmek için tıkla
+                </span>
+              </div>
             )}
           </div>
+
+          {/* DÜZENLEME MODU GÖRSEL KONTROLLERİ (Yalnızca Düzenle açıkken görünür) */}
+          {isEditing ? (
+            <div className="w-full mt-3 pt-3 border-t border-blue-200/60 flex flex-col gap-2 animate-in fade-in duration-200">
+              <div className="flex items-center gap-1.5 w-full">
+                <button
+                  type="button"
+                  onClick={() => cameraInputRef.current?.click()}
+                  disabled={isSaving}
+                  className="flex-1 py-1.5 px-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white font-bold text-[11px] rounded-lg transition-all flex items-center justify-center gap-1.5 shadow-xs"
+                  title="Kamera ile yeni fotoğraf çek"
+                >
+                  <Camera size={13} />
+                  <span>Fotoğraf Çek</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={isSaving}
+                  className="flex-1 py-1.5 px-2 bg-slate-100 hover:bg-slate-200 disabled:opacity-50 text-slate-700 font-bold text-[11px] rounded-lg transition-all flex items-center justify-center gap-1.5 border border-slate-200"
+                  title="Dosya seç"
+                >
+                  <Upload size={13} />
+                  <span>Görsel Seç</span>
+                </button>
+
+                {hasValidImage && !pendingImageDelete && (
+                  <button
+                    type="button"
+                    onClick={handleStageImageDelete}
+                    disabled={isSaving}
+                    className="py-1.5 px-2.5 bg-red-50 hover:bg-red-100 disabled:opacity-50 text-red-600 font-bold text-[11px] rounded-lg transition-colors border border-red-200 flex items-center justify-center gap-1"
+                    title="Görseli kaldır"
+                  >
+                    <Trash2 size={13} />
+                    <span className="hidden sm:inline">Kaldır</span>
+                  </button>
+                )}
+              </div>
+
+              {/* Bekleyen Görsel Değişiklik Bildirimi */}
+              {pendingImageFile && (
+                <div className="text-[10px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-1 rounded-md text-center">
+                  ✓ Yeni görsel seçildi. Uygulamak için sağ alttan <strong>Kaydet</strong>'e basınız.
+                </div>
+              )}
+
+              {pendingImageDelete && (
+                <div className="text-[10px] font-bold text-red-700 bg-red-50 border border-red-200 px-2 py-1 rounded-md text-center">
+                  ⚠️ Görsel kaldırılacak. Onaylamak için sağ alttan <strong>Kaydet</strong>'e basınız.
+                </div>
+              )}
+            </div>
+          ) : (
+            <div className="w-full mt-2 text-center">
+              <span className="text-[10px] text-slate-400">
+                Görseli değiştirmek için <strong className="text-slate-600">Düzenle</strong> butonuna basınız
+              </span>
+            </div>
+          )}
 
           {/* BÜYÜTÜLMÜŞ GÖRSEL (ZOOM MODAL) */}
           {isZoomed && (
@@ -581,7 +626,7 @@ export default function UrunDetayModal({
               {isEditing ? (
                 <>
                   <button
-                    onClick={() => setIsEditing(false)}
+                    onClick={handleCancelEditing}
                     disabled={isSaving}
                     className="px-4 h-10 md:h-12 rounded-lg font-bold text-[10px] tracking-wider uppercase bg-white text-slate-500 hover:bg-slate-100 border border-slate-200 active:scale-[0.98] disabled:opacity-50 transition-colors"
                   >
