@@ -1,14 +1,13 @@
-// app/api/urun-duzenle/route.ts
 import { NextResponse, NextRequest } from 'next/server';
-import * as sql from 'mssql';
-import { getDbConnection } from '@/app/lib/db'; // db.ts dosyanızın yolu
+import { getDbConnection } from '@/app/lib/db';
 import { isSameOrigin } from '@/app/lib/request-security';
 
 interface UrunDuzenleBody {
   urunKodu: string;
   urunAd: string;
-  raf: string;
-  oems: string[]; // [oem0, oem1, oem2, oem3, oem4]
+  urunAlt?: string;
+  raf?: string;
+  oems?: string[]; // [oem0, oem1, oem2, oem3, oem4]
 }
 
 export async function POST(req: NextRequest) {
@@ -21,7 +20,7 @@ export async function POST(req: NextRequest) {
 
   try {
     const body = (await req.json()) as UrunDuzenleBody;
-    const { urunKodu, urunAd, raf, oems } = body;
+    const { urunKodu, urunAd, urunAlt, raf, oems } = body;
 
     // Temel doğrulama (Validation)
     if (!urunKodu || !urunAd) {
@@ -31,13 +30,14 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Ortak havuzdan (Singleton Promise) bağlantıyı çekiyoruz
+    // Ortak havuzdan bağlantıyı çekiyoruz
     const pool = await getDbConnection();
     
     // Prosedürü güvenli parametrelerle çalıştırıyoruz
     await pool.request()
       .input('UrunKodu', urunKodu)
       .input('UrunAd', urunAd)
+      .input('UrunAlt', urunAlt || '')
       .input('Raf', raf || '')
       .input('OEM_0', oems?.[0] || '')
       .input('OEM_1', oems?.[1] || '')
@@ -47,10 +47,11 @@ export async function POST(req: NextRequest) {
       .execute('sp_StokDuzenle');
 
     return NextResponse.json({ success: true, message: 'Ürün başarıyla güncellendi.' });
-  } catch (error: any) {
+  } catch (error: unknown) {
+    const errorMsg = error instanceof Error ? error.message : 'Veritabanı işlemi sırasında bir hata oluştu.';
     console.error('Ürün Düzenleme API Hatası:', error);
     return NextResponse.json(
-      { error: error.message || 'Veritabanı işlemi sırasında bir hata oluştu.' },
+      { error: errorMsg },
       { status: 500 }
     );
   }

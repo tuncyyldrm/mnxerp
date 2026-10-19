@@ -17,7 +17,8 @@ export async function POST(request: Request) {
     }
 
     const cleaned = getCleanedCode(urunkodu);
-    const targetFile = path.join(URUNLER_DIR, `${cleaned}.jpg`);
+    const fileName = cleaned + '.jpg';
+    const targetFile = path.resolve(URUNLER_DIR, fileName);
 
     if (!fs.existsSync(targetFile)) {
       return NextResponse.json({

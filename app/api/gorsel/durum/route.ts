@@ -15,7 +15,8 @@ export async function GET(request: Request) {
     // Tekil ürün kontrolü
     if (kod) {
       const cleaned = getCleanedCode(kod);
-      const filePath = path.join(URUNLER_DIR, `${cleaned}.jpg`);
+      const fileName = cleaned + '.jpg';
+      const filePath = path.resolve(URUNLER_DIR, fileName);
       const exists = fs.existsSync(filePath);
 
       if (exists) {

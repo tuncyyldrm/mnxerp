@@ -173,6 +173,7 @@ export default function UrunDetayModal({
           body: JSON.stringify({
             urunKodu: urun.urunkodu,
             urunAd: editForm.urun,
+            urunAlt: editForm.urunalt,
             raf: editForm.Raf,
             oems: editForm.oems
           })
@@ -225,6 +226,7 @@ export default function UrunDetayModal({
         urun: editForm.urun,
         urunalt: editForm.urunalt,
         Raf: editForm.Raf,
+        OEM: editForm.oems[0] || urun.OEM || '',
         OEM_0: editForm.oems[0],
         OEM_1: editForm.oems[1],
         OEM_2: editForm.oems[2],
@@ -442,13 +444,13 @@ export default function UrunDetayModal({
               {/* Bekleyen Görsel Değişiklik Bildirimi */}
               {pendingImageFile && (
                 <div className="text-[10px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-1 rounded-md text-center">
-                  ✓ Yeni görsel seçildi. Uygulamak için sağ alttan <strong>Kaydet</strong>'e basınız.
+                  ✓ Yeni görsel seçildi. Uygulamak için sağ alttan <strong>Kaydet</strong>&apos;e basınız.
                 </div>
               )}
 
               {pendingImageDelete && (
                 <div className="text-[10px] font-bold text-red-700 bg-red-50 border border-red-200 px-2 py-1 rounded-md text-center">
-                  ⚠️ Görsel kaldırılacak. Onaylamak için sağ alttan <strong>Kaydet</strong>'e basınız.
+                  ⚠️ Görsel kaldırılacak. Onaylamak için sağ alttan <strong>Kaydet</strong>&apos;e basınız.
                 </div>
               )}
             </div>

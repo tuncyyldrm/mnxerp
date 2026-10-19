@@ -26,14 +26,21 @@ export async function POST(request: Request) {
 
     const sonuclar: Array<{ dosyaAdi: string; urunkodu: string; durum: 'basarili' | 'hatali'; mesaj?: string; boyut?: number }> = [];
 
+    const MAX_FILE_SIZE = 15 * 1024 * 1024; // 15 MB azami dosya boyutu sınırı
+
     // Tekli Yükleme
     if (tekliDosya && tekliKod) {
+      if (tekliDosya.size > MAX_FILE_SIZE) {
+        return NextResponse.json({ success: false, error: 'Dosya boyutu çok büyük (Azami 15 MB).' }, { status: 400 });
+      }
+
       const cleaned = getCleanedCode(tekliKod);
       if (!cleaned) {
         return NextResponse.json({ success: false, error: 'Geçersiz ürün kodu.' }, { status: 400 });
       }
 
-      const targetPath = path.join(URUNLER_DIR, `${cleaned}.jpg`);
+      const fileName = cleaned + '.jpg';
+      const targetPath = path.resolve(URUNLER_DIR, fileName);
       const arrayBuffer = await tekliDosya.arrayBuffer();
       const buffer = Buffer.from(arrayBuffer);
 
@@ -49,9 +56,9 @@ export async function POST(request: Request) {
 
       return NextResponse.json({
         success: true,
-        message: `${cleaned}.jpg başarıyla yüklendi ve optimize edildi.`,
-        dosyaAdi: `${cleaned}.jpg`,
-        url: `/images/urunler/${cleaned}.jpg?t=${Date.now()}`,
+        message: `${fileName} başarıyla yüklendi ve optimize edildi.`,
+        dosyaAdi: fileName,
+        url: `/images/urunler/${fileName}?t=${Date.now()}`,
         boyut: stat.size
       });
     }
@@ -65,6 +72,16 @@ export async function POST(request: Request) {
 
     for (const file of islenecekDosyalar) {
       try {
+        if (file.size > MAX_FILE_SIZE) {
+          sonuclar.push({
+            dosyaAdi: file.name,
+            urunkodu: file.name,
+            durum: 'hatali',
+            mesaj: 'Dosya 15 MB sınırını aşıyor.'
+          });
+          continue;
+        }
+
         const rawName = path.parse(file.name).name;
         const cleaned = getCleanedCode(rawName);
 
@@ -78,7 +95,8 @@ export async function POST(request: Request) {
           continue;
         }
 
-        const targetPath = path.join(URUNLER_DIR, `${cleaned}.jpg`);
+        const fileName = cleaned + '.jpg';
+        const targetPath = path.resolve(URUNLER_DIR, fileName);
         const arrayBuffer = await file.arrayBuffer();
         const buffer = Buffer.from(arrayBuffer);
 

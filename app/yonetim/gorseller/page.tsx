@@ -74,7 +74,7 @@ export default function GorselYonetimPage() {
   const [processingKod, setProcessingKod] = useState<string | null>(null);
   const [activeCameraKod, setActiveCameraKod] = useState<string | null>(null);
   const [activeUploadKod, setActiveUploadKod] = useState<string | null>(null);
-  const [globalImageVersion, setGlobalImageVersion] = useState(Date.now());
+  const [globalImageVersion, setGlobalImageVersion] = useState(1);
   const [toastMsg, setToastMsg] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
   // Zoom / Lightbox

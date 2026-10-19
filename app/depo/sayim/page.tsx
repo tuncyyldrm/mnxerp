@@ -133,7 +133,7 @@ export default function DepoSayimPage() {
   const searchInputRef = useRef<HTMLInputElement>(null);
 
   // Depoda Anlık Görsel Çekme & Yükleme
-  const [imageVersion, setImageVersion] = useState(Date.now());
+  const [imageVersion, setImageVersion] = useState(1);
   const [isUploadingImage, setIsUploadingImage] = useState(false);
   const [imageUploadStatus, setImageUploadStatus] = useState<string | null>(null);
   const cameraInputRef = useRef<HTMLInputElement>(null);

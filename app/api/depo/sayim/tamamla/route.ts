@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { getDbConnection } from '@/app/lib/db';
 import * as sql from 'mssql';
+import { isSameOrigin } from '@/app/lib/request-security';
 
 function escapeXml(unsafe: string): string {
   if (!unsafe) return '';
@@ -14,18 +15,6 @@ function escapeXml(unsafe: string): string {
       default: return c;
     }
   });
-}
-
-function isSameOrigin(request: Request): boolean {
-  const origin = request.headers.get('origin');
-  const host = request.headers.get('host');
-  if (!origin || !host) return true;
-  try {
-    const originHost = new URL(origin).host;
-    return originHost === host;
-  } catch {
-    return false;
-  }
 }
 
 // Geçmiş sayımları listele
