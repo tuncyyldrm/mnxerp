@@ -451,6 +451,7 @@ export default function GorselYonetimPage() {
                   ) : urun.gorselVar ? (
                     <>
                       <img
+                        key={`${urun.urunkodu}-${globalImageVersion}`}
                         src={imgPath}
                         alt={urun.urun}
                         className="max-w-full max-h-full w-auto h-auto object-contain transition-transform group-hover:scale-105"

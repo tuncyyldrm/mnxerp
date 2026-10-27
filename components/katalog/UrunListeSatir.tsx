@@ -27,7 +27,8 @@ export default function UrunListeSatir({ item, onClick }: UrunListeSatirProps) {
             <div className={`w-16 h-16 rounded-xl border-2 p-1 transition-all
             ${durum.isYok ? 'border-slate-100 bg-slate-50' : 'border-white bg-white shadow-xs group-hover/img:border-blue-100'}`}>
               <img
-                src={`/images/urunler/${getCleanedCode(item.urunkodu)}.jpg`}
+                key={`${item.urunkodu}-${item.imageVersion || '0'}`}
+                src={`/images/urunler/${getCleanedCode(item.urunkodu)}.jpg${item.imageVersion ? `?v=${item.imageVersion}` : ''}`}
                 className="w-full h-full object-contain animate-in zoom-in-95 duration-200 select-none"
                 alt={item.urun}
                 onError={(e) => {

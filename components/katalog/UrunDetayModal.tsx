@@ -231,7 +231,8 @@ export default function UrunDetayModal({
         OEM_1: editForm.oems[1],
         OEM_2: editForm.oems[2],
         OEM_3: editForm.oems[3],
-        OEM_4: editForm.oems[4]
+        OEM_4: editForm.oems[4],
+        imageVersion: newVersion
       };
 
       onUrunGuncellendi(guncelUrun);

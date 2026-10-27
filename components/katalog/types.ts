@@ -14,6 +14,7 @@ export interface Urun {
   fiyatı: number;          // Fiyat (Zorunlu)
   STK_FULL?: number;       // Eski/Alternatif stok alanı
   MevcutBakiye: number;    // Canlı bakiye alanı (Zorunlu/0 döner)
+  imageVersion?: number;   // Canlı görsel versiyonu (anında önbellek tazeleme)
 
   // OEM Numaraları (Hepsi opsiyonel - Boş gelebilir)
   OEM?: string;

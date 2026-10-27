@@ -40,7 +40,8 @@ export default function UrunGridKart({ item, onClick }: UrunGridKartProps) {
         </span>
 
         <img
-          src={`/images/urunler/${getCleanedCode(item.urunkodu)}.jpg`}
+          key={`${item.urunkodu}-${item.imageVersion || '0'}`}
+          src={`/images/urunler/${getCleanedCode(item.urunkodu)}.jpg${item.imageVersion ? `?v=${item.imageVersion}` : ''}`}
           alt={item.urun}
           className={`max-w-full max-h-full object-contain transition-transform duration-500 group-hover:scale-110 
           ${durum.isYok ? 'opacity-95' : 'grayscale-0'}`}
